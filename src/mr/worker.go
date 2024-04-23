@@ -34,8 +34,18 @@ func Worker(mapf func(string, string) []KeyValue,
 	// Your worker implementation here.
 
 	// uncomment to send the Example RPC to the coordinator.
-	// CallExample()
+	//CallExample()//---------------------------------------------------------------------------------------------------
 
+}
+
+func firstCallCoordinator() {
+    // declare an argument structure.
+    args := workerArgs{}
+
+    // declare a reply structure.
+    reply := workerReply{}
+
+    ok := call("Coordinator.workersCall", &args, &reply)
 }
 
 //

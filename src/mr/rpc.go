@@ -23,7 +23,16 @@ type ExampleReply struct {
 }
 
 // Add your RPC definitions here.
+type workerArgs struct {
+    filename string//return finish filename
+    workerID int
 
+}
+
+type workerReply struct {
+    filename string
+    workerID int
+}
 
 // Cook up a unique-ish UNIX-domain socket name
 // in /var/tmp, for the coordinator.

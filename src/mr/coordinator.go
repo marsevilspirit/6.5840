@@ -9,10 +9,15 @@ import "net/http"
 
 type Coordinator struct {
 	// Your definitions here.
-
+    filenames []string 
+    nReduce int
+    workerIDs []int
 }
 
 // Your code here -- RPC handlers for the worker to call.
+func (c *Coordinator) workersCall(args *workerArgs, reply *workerReply) error {
+    return nil
+}
 
 //
 // an example RPC handler.
@@ -23,7 +28,6 @@ func (c *Coordinator) Example(args *ExampleArgs, reply *ExampleReply) error {
 	reply.Y = args.X + 1
 	return nil
 }
-
 
 //
 // start a thread that listens for RPCs from worker.go
@@ -46,7 +50,7 @@ func (c *Coordinator) server() {
 // if the entire job has finished.
 //
 func (c *Coordinator) Done() bool {
-	ret := false
+	ret := false 
 
 	// Your code here.
 
@@ -62,8 +66,11 @@ func (c *Coordinator) Done() bool {
 func MakeCoordinator(files []string, nReduce int) *Coordinator {
 	c := Coordinator{}
 
+
 	// Your code here.
 
+    c.filenames = files
+    c.nReduce = nReduce
 
 	c.server()
 	return &c

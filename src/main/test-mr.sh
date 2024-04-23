@@ -7,6 +7,7 @@
 # un-comment this to run the tests with the Go race detector.
 # RACE=-race
 
+
 if [[ "$OSTYPE" = "darwin"* ]]
 then
   if go version | grep 'go1.17.[012345]'
@@ -27,7 +28,6 @@ maybe_quiet() {
       "$@"
     fi
 }
-
 
 TIMEOUT=timeout
 TIMEOUT2=""
