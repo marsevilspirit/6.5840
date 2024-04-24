@@ -23,15 +23,15 @@ type ExampleReply struct {
 }
 
 // Add your RPC definitions here.
-type workerArgs struct {
-    filename string//return finish filename
-    workerID int
+type WorkerArgs struct {
+    Filename string//return finish filename
+    WorkerID int
 
 }
 
-type workerReply struct {
+type WorkerReply struct {
     filename string
-    workerID int
+    WorkerID int
 }
 
 // Cook up a unique-ish UNIX-domain socket name
