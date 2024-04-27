@@ -17,16 +17,18 @@ type Coordinator struct {
     workerIDs []int
     tasks map[int]string
     mutex sync.Mutex
+
+    map_tasks_done bool
 }
 
 // Your code here -- RPC handlers for the worker to call.
 func (c *Coordinator) WorkersCall(args *WorkerArgs, reply *WorkerReply) error {
     //为新的worker分配workerID
-    if(args.WorkerID == 0) {
+    if args.WorkerID == 0 {
 
         c.mutex.Lock() //防止workerIDs被多个worker同时修改
 
-        if(len(c.workerIDs) == 0) {
+        if len(c.workerIDs) == 0 {
             c.workerIDs = append(c.workerIDs, 1)
             reply.WorkerID = 1
         } else {
@@ -58,7 +60,12 @@ func (c *Coordinator) WorkersCall(args *WorkerArgs, reply *WorkerReply) error {
     //为worker分配任务
     c.mutex.Lock()
 
-    
+    if c.map_tasks_done == false {
+        filename := c.filenames[len(c.filenames) - 1]
+        c.filenames = c.filenames[:len(c.filenames) - 1]
+
+        c.tasks[args.WorkerID] = filename
+    }
 
     c.mutex.Unlock()
 
@@ -117,6 +124,7 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
 
     c.filenames = files
     c.nReduce = nReduce
+    c.map_tasks_done = false
 
     c.server()
     return &c
