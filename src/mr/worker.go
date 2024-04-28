@@ -1,11 +1,16 @@
 package mr
 
-import "fmt"
-import "log"
-import "net/rpc"
-import "hash/fnv"
-import "time"
-
+import (
+    "fmt"
+    "hash/fnv"
+    "log"
+    "net/rpc"
+    "os"
+    "io"
+    "encoding/json"
+    "path/filepath"
+    "sort"
+)
 
 //
 // Map functions return a slice of KeyValue.
@@ -25,6 +30,14 @@ func ihash(key string) int {
     return int(h.Sum32() & 0x7fffffff)
 }
 
+// for sorting by key.
+type ByKey []KeyValue
+
+// for sorting by key.
+func (a ByKey) Len() int           { return len(a) }
+func (a ByKey) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByKey) Less(i, j int) bool { return a[i].Key < a[j].Key }
+
 
 //
 // main/mrworker.go calls this function.
@@ -33,35 +46,130 @@ func Worker(mapf func(string, string) []KeyValue,
 reducef func(string, []string) string) {
 
     // Your worker implementation here.
+    args := WorkerArgs{};
+    args.Ok = false;
+
+    reply := WorkerReply{};
 
     // uncomment to send the Example RPC to the coordinator.
     //CallExample()//---------------------------------------------------------------------------------------------------
-    CallCoordinator(mapf, reducef)
-
-    time.Sleep(10 * time.Second) 
-}
-
-func CallCoordinator(mapf func(string, string) []KeyValue, reducef func(string, []string) string) {
-    // declare an argument structure.
-    args := WorkerArgs{}
-
-    // declare a reply structure.
-    reply := WorkerReply{}
 
     for {
-
-        fmt.Println("args workerID:", args.WorkerID)
-
-        ok := call("Coordinator.WorkersCall", &args, &reply)
+        ok := CallCoordinator(mapf, reducef, &args, &reply)
         if ok {
             args.WorkerID = reply.WorkerID
-            fmt.Printf("workerID: %v\n", reply.WorkerID)
+            args.Task = reply.Task
+            args.Ok = true
         } else {
             fmt.Printf("call failed!\n")
+            os.Exit(1)
+        }
+    }
+}
+
+func CallCoordinator(mapf func(string, string) []KeyValue, reducef func(string, []string) string, args *WorkerArgs, reply *WorkerReply)  bool {
+
+    ok := call("Coordinator.WorkersCall", &args, &reply)
+
+    if reply.Task == "map" {
+        file, err := os.Open(reply.Filename)
+        if err != nil {
+            log.Fatalf("cannot open %v", reply.Filename)
+        }
+        content, err := io.ReadAll(file)
+        if err != nil {
+            log.Fatalf("cannot read %v", reply.Filename)
+        }
+        defer file.Close()
+
+        kva := mapf(reply.Filename, string(content))
+
+
+        for _, kv := range kva {
+            reduceTask := ihash(kv.Key) % reply.NReduce
+
+            oname := fmt.Sprintf("mr-%v-%v", reduceTask, reply.WorkerID)
+            ofile, _ := os.OpenFile(oname, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+
+            enc := json.NewEncoder(ofile)
+            enc.Encode(&kv)
+
+            ofile.Close()
+        }
+    }
+
+    if reply.Task == "reduce" {
+        kva := []KeyValue{}
+
+        dir := "."
+
+        matchname := fmt.Sprintf("mr-%v-*", reply.XReduce - 1)
+
+        // 读取目录中的文件列表
+        files, err := os.ReadDir(dir)
+        if err != nil {
+            fmt.Println("读取目录失败:", err)
         }
 
-        time.Sleep(2 * time.Second)
+        // 遍历文件列表，查找符合条件的文件
+        for _, file := range files {
+            // 使用通配符匹配文件名
+            matched, err := filepath.Match(matchname, file.Name())
+            if err != nil {
+                fmt.Println("匹配文件名失败:", err)
+            }
+            // 如果文件名匹配成功，则输出文件名
+            if matched {
+                filereader,err := os.Open(file.Name())
+                if err != nil {
+                    fmt.Println("打开文件失败:", err)
+                }
+
+                dec := json.NewDecoder(filereader)
+                for {
+                    var kv KeyValue
+                    if err := dec.Decode(&kv); err != nil {
+                        break
+                    }
+                    kva = append(kva, kv)
+                }
+
+                if err:= os.Remove(file.Name()); err != nil {
+                    fmt.Println("删除文件失败:", err)
+                }
+            }
+        } 
+
+      	sort.Sort(ByKey(kva))
+
+        oname := fmt.Sprintf("mr-out-%v", reply.XReduce)
+        ofile, _ := os.Create(oname)
+
+        i := 0
+        for i < len(kva) {
+            j := i + 1
+            for j < len(kva) && kva[j].Key == kva[i].Key {
+                j++
+            }
+            values := []string{}
+            for k := i; k < j; k++ {
+                values = append(values, kva[k].Value)
+            }
+            output := reducef(kva[i].Key, values)
+
+            fmt.Fprintf(ofile, "%v %v\n", kva[i].Key, output)
+
+            i = j
+        }
+
+        ofile.Close()
     }
+
+    if reply.Task == "done" {
+        os.Exit(0)
+    }
+
+    return ok
 }
 
 //

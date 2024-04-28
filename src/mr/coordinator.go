@@ -1,30 +1,32 @@
 package mr
 
-import "log"
-import "net"
-import "os"
-import "net/rpc"
-import "net/http"
-
-import "fmt"
-import "sync"
+import (
+    "log"
+    "net"
+    "net/http"
+    "net/rpc"
+    "os"
+    "sync"
+)
 
 
 type Coordinator struct {
     // Your definitions here.
-    filenames []string 
-    nReduce int
-    workerIDs []int
-    tasks map[int]string
-    mutex sync.Mutex
+    filenames           []string 
+    nReduce             int
+    workerIDs           []int
+    tasks               map[int]string
+    mutex               sync.Mutex
 
-    map_tasks_done bool
+    map_tasks_done      bool
+    reduce_tasks_done   bool
 }
 
 // Your code here -- RPC handlers for the worker to call.
 func (c *Coordinator) WorkersCall(args *WorkerArgs, reply *WorkerReply) error {
     //为新的worker分配workerID
     if args.WorkerID == 0 {
+        reply.NReduce = c.nReduce
 
         c.mutex.Lock() //防止workerIDs被多个worker同时修改
 
@@ -53,18 +55,35 @@ func (c *Coordinator) WorkersCall(args *WorkerArgs, reply *WorkerReply) error {
         }
 
         c.mutex.Unlock()
-
-        fmt.Println(c.workerIDs)
     }
 
     //为worker分配任务
     c.mutex.Lock()
 
     if c.map_tasks_done == false {
-        filename := c.filenames[len(c.filenames) - 1]
-        c.filenames = c.filenames[:len(c.filenames) - 1]
+        if len(c.filenames) > 0 {
+            filename := c.filenames[len(c.filenames) - 1]
+            c.filenames = c.filenames[:len(c.filenames) - 1]
 
-        c.tasks[args.WorkerID] = filename
+            c.tasks[args.WorkerID] = filename
+
+            reply.Filename = filename
+            reply.Task = "map"
+
+        } else {
+            c.map_tasks_done = true
+        }
+    }
+
+    if c.reduce_tasks_done == false && c.map_tasks_done == true {
+        if c.nReduce > 0 {
+            reply.XReduce = c.nReduce
+            c.nReduce--
+            reply.Task = "reduce"
+        } else {
+            c.reduce_tasks_done = true
+            reply.Task = "done"
+        }
     }
 
     c.mutex.Unlock()
@@ -107,6 +126,9 @@ func (c *Coordinator) Done() bool {
 
     // Your code here.
 
+    if c.map_tasks_done == true && c.reduce_tasks_done == true {
+        ret = true
+    }
 
     return ret
 }
@@ -125,6 +147,8 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
     c.filenames = files
     c.nReduce = nReduce
     c.map_tasks_done = false
+    c.reduce_tasks_done = false
+    c.tasks = make(map[int]string)
 
     c.server()
     return &c

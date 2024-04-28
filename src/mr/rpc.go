@@ -26,12 +26,16 @@ type ExampleReply struct {
 type WorkerArgs struct {
     Filename string//return finish filename
     WorkerID int
-
+    Ok       bool
+    Task     string
 }
 
 type WorkerReply struct {
-    filename string
+    Filename string
     WorkerID int
+    Task     string
+    NReduce  int
+    XReduce  int
 }
 
 // Cook up a unique-ish UNIX-domain socket name
