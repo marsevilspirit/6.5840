@@ -1,15 +1,16 @@
 package mr
 
 import (
-    "fmt"
-    "hash/fnv"
-    "log"
-    "net/rpc"
-    "os"
-    "io"
-    "encoding/json"
-    "path/filepath"
-    "sort"
+	"encoding/json"
+	"fmt"
+	"hash/fnv"
+	"io"
+	"log"
+	"net/rpc"
+	"os"
+	"path/filepath"
+	"sort"
+	"time"
 )
 
 //
@@ -61,9 +62,10 @@ reducef func(string, []string) string) {
             args.Task = reply.Task
             args.Ok = true
         } else {
-            fmt.Printf("call failed!\n")
             os.Exit(1)
         }
+
+        time.Sleep(time.Second)//我擦，tmd没这行indexer test还过不去？
     }
 }
 
@@ -71,7 +73,14 @@ func CallCoordinator(mapf func(string, string) []KeyValue, reducef func(string, 
 
     ok := call("Coordinator.WorkersCall", &args, &reply)
 
+    if reply.Task == "sleep" {
+        //fmt.Printf("worker %v sleep\n", reply.WorkerID)
+        return ok
+    }
+
     if reply.Task == "map" {
+        //fmt.Printf("worker %v map %v\n", reply.WorkerID, reply.Filename)
+
         file, err := os.Open(reply.Filename)
         if err != nil {
             log.Fatalf("cannot open %v", reply.Filename)
@@ -99,6 +108,8 @@ func CallCoordinator(mapf func(string, string) []KeyValue, reducef func(string, 
     }
 
     if reply.Task == "reduce" {
+        //fmt.Printf("worker %v reduce %v\n", reply.WorkerID, reply.XReduce)
+
         kva := []KeyValue{}
 
         dir := "."
@@ -134,15 +145,13 @@ func CallCoordinator(mapf func(string, string) []KeyValue, reducef func(string, 
                     kva = append(kva, kv)
                 }
 
-                if err:= os.Remove(file.Name()); err != nil {
-                    fmt.Println("删除文件失败:", err)
-                }
+                os.Remove(file.Name())
             }
         } 
 
       	sort.Sort(ByKey(kva))
 
-        oname := fmt.Sprintf("mr-out-%v", reply.XReduce)
+        oname := fmt.Sprintf("mr-out-%v", reply.XReduce - 1)
         ofile, _ := os.Create(oname)
 
         i := 0

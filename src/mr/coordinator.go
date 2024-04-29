@@ -1,12 +1,14 @@
 package mr
 
 import (
-    "log"
-    "net"
-    "net/http"
-    "net/rpc"
-    "os"
-    "sync"
+	//"fmt"
+	"log"
+	"net"
+	"net/http"
+	"net/rpc"
+	"os"
+	"sync"
+	//"time"
 )
 
 
@@ -15,7 +17,7 @@ type Coordinator struct {
     filenames           []string 
     nReduce             int
     workerIDs           []int
-    tasks               map[int]string
+    doing_tasks         map[int]string
     mutex               sync.Mutex
 
     map_tasks_done      bool
@@ -55,35 +57,59 @@ func (c *Coordinator) WorkersCall(args *WorkerArgs, reply *WorkerReply) error {
         }
 
         c.mutex.Unlock()
+    } else {
+        c.mutex.Lock()
+
+        delete(c.doing_tasks, args.WorkerID)
+
+        c.mutex.Unlock()
     }
 
     //为worker分配任务
     c.mutex.Lock()
+
+    reply.Task = "sleep"
 
     if c.map_tasks_done == false {
         if len(c.filenames) > 0 {
             filename := c.filenames[len(c.filenames) - 1]
             c.filenames = c.filenames[:len(c.filenames) - 1]
 
-            c.tasks[args.WorkerID] = filename
+            if args.WorkerID == 0 {
+                c.doing_tasks[reply.WorkerID] = filename
+            } else {
+                c.doing_tasks[args.WorkerID] = filename
+            }
 
             reply.Filename = filename
             reply.Task = "map"
 
         } else {
-            c.map_tasks_done = true
+            if len(c.doing_tasks) == 0 {
+                c.map_tasks_done = true
+            }
         }
     }
 
     if c.reduce_tasks_done == false && c.map_tasks_done == true {
         if c.nReduce > 0 {
             reply.XReduce = c.nReduce
+
+            c.doing_tasks[args.WorkerID] = "reduce"
+
             c.nReduce--
             reply.Task = "reduce"
-        } else {
+        } else if len(c.doing_tasks) == 0 {
             c.reduce_tasks_done = true
             reply.Task = "done"
         }
+
+        c.mutex.Unlock()
+        return nil
+    }
+
+    if c.reduce_tasks_done == true {
+        reply.Task = "done"
     }
 
     c.mutex.Unlock()
@@ -126,7 +152,11 @@ func (c *Coordinator) Done() bool {
 
     // Your code here.
 
-    if c.map_tasks_done == true && c.reduce_tasks_done == true {
+    //fmt.Println("map_tasks_done:", c.map_tasks_done)
+    //fmt.Println("reduce_tasks_done:", c.reduce_tasks_done)
+    //fmt.Println("doing_tasks:", c.doing_tasks)
+
+    if c.map_tasks_done == true && c.reduce_tasks_done == true && len(c.doing_tasks) == 0 {
         ret = true
     }
 
@@ -148,7 +178,16 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
     c.nReduce = nReduce
     c.map_tasks_done = false
     c.reduce_tasks_done = false
-    c.tasks = make(map[int]string)
+    c.doing_tasks = make(map[int]string)
+
+    /*
+    go func() {
+        for {
+            fmt.Println("doing_tasks:", c.doing_tasks)
+            time.Sleep(1 * time.Second)
+        }
+    }()
+    */
 
     c.server()
     return &c
