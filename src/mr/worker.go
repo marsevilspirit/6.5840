@@ -73,6 +73,8 @@ func CallCoordinator(mapf func(string, string) []KeyValue, reducef func(string, 
 
     ok := call("Coordinator.WorkersCall", &args, &reply)
 
+    args.Ok = false
+
     if reply.Task == "sleep" {
         //fmt.Printf("worker %v sleep\n", reply.WorkerID)
         return ok
@@ -178,9 +180,10 @@ func CallCoordinator(mapf func(string, string) []KeyValue, reducef func(string, 
         os.Exit(0)
     }
 
+    args.Ok = true
+
     return ok
 }
-
 //
 // example function to show how to make an RPC call to the coordinator.
 //
