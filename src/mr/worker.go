@@ -65,7 +65,7 @@ reducef func(string, []string) string) {
             os.Exit(1)
         }
 
-        time.Sleep(time.Second)//我擦，tmd没这行indexer test还过不去？
+        //time.Sleep(time.Second)//我擦，tmd没这行indexer test还过不去？
     }
 }
 
@@ -76,12 +76,13 @@ func CallCoordinator(mapf func(string, string) []KeyValue, reducef func(string, 
     args.Ok = false
 
     if reply.Task == "sleep" {
-        //fmt.Printf("worker %v sleep\n", reply.WorkerID)
+        fmt.Printf("worker %v sleep\n", reply.WorkerID)
+        time.Sleep(time.Second)    
         return ok
     }
 
     if reply.Task == "map" {
-        //fmt.Printf("worker %v map %v\n", reply.WorkerID, reply.Filename)
+        fmt.Printf("worker %v map %v\n", reply.WorkerID, reply.Filename)
 
         file, err := os.Open(reply.Filename)
         if err != nil {
@@ -110,7 +111,7 @@ func CallCoordinator(mapf func(string, string) []KeyValue, reducef func(string, 
     }
 
     if reply.Task == "reduce" {
-        //fmt.Printf("worker %v reduce %v\n", reply.WorkerID, reply.XReduce)
+        fmt.Printf("worker %v reduce %v\n", reply.WorkerID, reply.XReduce)
 
         kva := []KeyValue{}
 
@@ -147,7 +148,7 @@ func CallCoordinator(mapf func(string, string) []KeyValue, reducef func(string, 
                     kva = append(kva, kv)
                 }
 
-                os.Remove(file.Name())
+                //os.Remove(file.Name())
             }
         } 
 

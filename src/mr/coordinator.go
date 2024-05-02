@@ -75,7 +75,7 @@ func (c *Coordinator) WorkersCall(args *WorkerArgs, reply *WorkerReply) error {
         }
 
         if have == 0 {
-            fmt.Println("workerID:", args.WorkerID, "not exist")
+            //fmt.Println("workerID:", args.WorkerID, "not exist")
             reply.WorkerID = 0
 
             c.mutex.Unlock()
@@ -83,7 +83,7 @@ func (c *Coordinator) WorkersCall(args *WorkerArgs, reply *WorkerReply) error {
         }
 
         if args.Ok == false {
-            fmt.Println("workerID:", args.WorkerID, "task:", args.Task, "failed")
+            //fmt.Println("workerID:", args.WorkerID, "task:", args.Task, "failed")
             if args.Task[0] == 'r' {
                 c.reduce_tasks = append(c.reduce_tasks, int(args.Task[6] - '0'))
                 c.nReduce++
@@ -97,7 +97,7 @@ func (c *Coordinator) WorkersCall(args *WorkerArgs, reply *WorkerReply) error {
             return nil
         }
 
-        fmt.Println("done task:", args.WorkerID, c.doing_tasks[args.WorkerID])
+        //fmt.Println("done task:", args.WorkerID, c.doing_tasks[args.WorkerID])
         delete(c.doing_tasks, args.WorkerID)
 
         c.mutex.Unlock()
@@ -186,8 +186,8 @@ func (c *Coordinator) assignTaskTimeout(workerID int, task string) error {
             }
         }
 
-        fmt.Println("workerID:", workerID, "task:", task, "timeout")
-        fmt.Println("workerIDs:", c.workerIDs)
+        //fmt.Println("workerID:", workerID, "task:", task, "timeout")
+        //fmt.Println("workerIDs:", c.workerIDs)
 
         if task[0] == 'r' {
             c.reduce_tasks = append(c.reduce_tasks, int(task[6] - '0'))
@@ -272,6 +272,7 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
     c.reduce_tasks_done = false
     c.doing_tasks = make(map[int]string)
 
+    /*
     go func() {
         for {
             fmt.Println("doing_tasks:", c.doing_tasks)
@@ -279,7 +280,9 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
             time.Sleep(1 * time.Second)
         }
     }()
+    */
 
+    /*
     go func() {
         for {
             if len(c.doing_tasks) == 0 {
@@ -289,6 +292,7 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
             time.Sleep(1 * time.Second)
         }
     }()
+    */
 
     c.server()
     return &c
