@@ -1,6 +1,7 @@
 package kvsrv
 
 import (
+	"fmt"
 	"log"
 	"sync"
 )
@@ -24,6 +25,7 @@ type KVServer struct {
 
 func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 	// Your code here.
+    fmt.Println("")
 }
 
 func (kv *KVServer) Put(args *PutAppendArgs, reply *PutAppendReply) {
@@ -38,6 +40,7 @@ func StartKVServer() *KVServer {
 	kv := new(KVServer)
 
 	// You may need initialization code here.
+    fmt.Println("lab 2 start")
 
 	return kv
 }
