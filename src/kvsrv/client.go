@@ -4,10 +4,13 @@ import "6.5840/labrpc"
 import "crypto/rand"
 import "math/big"
 
+import "fmt"
 
 type Clerk struct {
 	server *labrpc.ClientEnd
 	// You will have to modify this struct.
+    taskID int
+    clientID int
 }
 
 func nrand() int64 {
@@ -37,7 +40,19 @@ func MakeClerk(server *labrpc.ClientEnd) *Clerk {
 func (ck *Clerk) Get(key string) string {
 
 	// You will have to modify this function.
-	return ""
+
+    getArgs := GetArgs{}
+    getArgs.Key = key
+
+    getReply := GetReply{}
+    
+    ok := ck.server.Call("KVServer.Get", &getArgs, &getReply)
+    if !ok {
+        fmt.Println("Get failed")
+        return ""
+    }
+
+	return getReply.Value
 }
 
 // shared by Put and Append.
@@ -50,7 +65,36 @@ func (ck *Clerk) Get(key string) string {
 // arguments. and reply must be passed as a pointer.
 func (ck *Clerk) PutAppend(key string, value string, op string) string {
 	// You will have to modify this function.
-	return ""
+    put_append_args := PutAppendArgs{}
+    put_append_args.Key = key
+    put_append_args.Value = value
+
+    put_append_reply := PutAppendReply{}
+
+
+
+    if op == "Put" {
+        ok := ck.server.Call("KVServer.Put", &put_append_args, &put_append_reply)
+        if !ok {
+            fmt.Println("Put failed")
+            return ""
+        }
+
+        return put_append_reply.Value
+    }
+
+    if op == "Append" {
+        ok := ck.server.Call("KVServer.Append", &put_append_args, &put_append_reply)
+        if !ok {
+            fmt.Println("Append failed")
+            return ""
+        }
+
+        return put_append_reply.Value
+    }
+
+
+    return ""
 }
 
 func (ck *Clerk) Put(key string, value string) {
