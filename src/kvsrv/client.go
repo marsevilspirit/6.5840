@@ -4,13 +4,12 @@ import "6.5840/labrpc"
 import "crypto/rand"
 import "math/big"
 
-import "fmt"
+//import "fmt"
+import "github.com/google/uuid"
 
 type Clerk struct {
 	server *labrpc.ClientEnd
 	// You will have to modify this struct.
-    taskID int
-    clientID int
 }
 
 func nrand() int64 {
@@ -38,18 +37,21 @@ func MakeClerk(server *labrpc.ClientEnd) *Clerk {
 // must match the declared types of the RPC handler function's
 // arguments. and reply must be passed as a pointer.
 func (ck *Clerk) Get(key string) string {
-
-	// You will have to modify this function.
+// You will have to modify this function.
 
     getArgs := GetArgs{}
     getArgs.Key = key
+    //getArgs.Task_Id = uuid.New().String()
 
     getReply := GetReply{}
     
-    ok := ck.server.Call("KVServer.Get", &getArgs, &getReply)
-    if !ok {
-        fmt.Println("Get failed")
-        return ""
+    for {
+        ok := ck.server.Call("KVServer.Get", &getArgs, &getReply)
+        if !ok {
+            //fmt.Println("Get failed(retry)")
+            continue
+        } 
+        break
     }
 
 	return getReply.Value
@@ -68,31 +70,33 @@ func (ck *Clerk) PutAppend(key string, value string, op string) string {
     put_append_args := PutAppendArgs{}
     put_append_args.Key = key
     put_append_args.Value = value
+    put_append_args.Task_Id = uuid.New().String()
 
     put_append_reply := PutAppendReply{}
 
 
 
     if op == "Put" {
-        ok := ck.server.Call("KVServer.Put", &put_append_args, &put_append_reply)
-        if !ok {
-            fmt.Println("Put failed")
-            return ""
+        for {
+            ok := ck.server.Call("KVServer.Put", &put_append_args, &put_append_reply)
+            if !ok {
+                //fmt.Println("Put failed(retry)")
+                continue
+            }
+            return put_append_reply.Value
         }
-
-        return put_append_reply.Value
     }
 
     if op == "Append" {
-        ok := ck.server.Call("KVServer.Append", &put_append_args, &put_append_reply)
-        if !ok {
-            fmt.Println("Append failed")
-            return ""
+        for {
+            ok := ck.server.Call("KVServer.Append", &put_append_args, &put_append_reply)
+            if !ok {
+                //fmt.Println("Append failed(retry)")
+                continue
+            }
+            return put_append_reply.Value
         }
-
-        return put_append_reply.Value
     }
-
 
     return ""
 }
