@@ -1,9 +1,10 @@
 package kvsrv
 
 import (
-	"fmt"
+//	"fmt"
 	"log"
 	"sync"
+//	"time"
 )
 
 const Debug = false
@@ -20,7 +21,7 @@ type KVServer struct {
 	mu sync.Mutex
 	// Your definitions here.
     kv map[string]string
-    finish_tasks map[string]string
+    requestIDs sync.Map
 }
 
 
@@ -29,75 +30,76 @@ func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
     kv.mu.Lock()
     defer kv.mu.Unlock()
 
-    /*for _, task_id := range kv.finish_tasks {
-        if task_id == args.Task_Id {
-            reply.Value = "repitition"
-            return
-        }
-    }*/
-
-    if val, ok := kv.kv[args.Key]; ok {
-        reply.Value = val
-    } else {
-        reply.Value = ""
-    }
-
-    //kv.finish_tasks = append(kv.finish_tasks, args.Task_Id)
+    reply.Value = kv.kv[args.Key]
 }
 
 func (kv *KVServer) Put(args *PutAppendArgs, reply *PutAppendReply) {
 	// Your code here.
+
+    if args.Mode == Mode_Report {
+        kv.requestIDs.Delete(args.Task_Id)
+        return
+    } 
+
+    v, ok := kv.requestIDs.Load(args.Task_Id)
+    if ok {
+        reply.Value = v.(string)
+        return
+    }
+
     kv.mu.Lock()
-    defer kv.mu.Unlock()
-
-    if val, ok := kv.finish_tasks[args.Task_Id]; ok {
-        if val == "done" {
-            reply.Value = ""
-            return
-        }
+    old := kv.kv[args.Key]
+    if old != args.Value {
+        kv.kv[args.Key] = args.Value
     }
+    kv.mu.Unlock()
 
-    if val, ok := kv.kv[args.Key]; ok {
-        reply.Value = val
-    } else {
-        reply.Value = ""
-    }
-    
-    kv.kv[args.Key] = args.Value
+    reply.Value = old
 
-    kv.finish_tasks[args.Task_Id] = "done"
+    kv.requestIDs.Store(args.Task_Id, old)
 }
 
 func (kv *KVServer) Append(args *PutAppendArgs, reply *PutAppendReply) {
 	// Your code here.
+    if args.Mode == Mode_Report {
+        kv.requestIDs.Delete(args.Task_Id)
+        return
+    }
+
+    v, ok := kv.requestIDs.Load(args.Task_Id)
+    if ok {
+         reply.Value = v.(string)
+         return
+    }
+
     kv.mu.Lock()
-    defer kv.mu.Unlock()
-
-    if val, ok := kv.finish_tasks[args.Task_Id]; ok {
-        if val == "done" {
-            reply.Value = ""
-            return
-        }
-    }
-
-    if val, ok := kv.kv[args.Key]; ok {
-        reply.Value = val
-        kv.kv[args.Key] = val + args.Value
-    } else {
-        reply.Value = ""
+    old := kv.kv[args.Key]
+    if old == "" {
         kv.kv[args.Key] = args.Value
+    } else {
+        kv.kv[args.Key] = old + args.Value
     }
+    kv.mu.Unlock()
 
-    kv.finish_tasks[args.Task_Id] = "done" 
+    reply.Value = old
+
+    kv.requestIDs.Store(args.Task_Id, old)
 }
 
 func StartKVServer() *KVServer {
 	kv := new(KVServer)
-    kv.kv = make(map[string]string)
-    kv.finish_tasks = make(map[string]string)
+    kv.kv = make(map[string]string, 20)
 
 	// You may need initialization code here.
-    fmt.Println("lab 2 start")
+
+    /*
+    go func() {
+        for {
+            fmt.Println("finish_tasks:", kv.finish_tasks)
+            time.Sleep(time.Second)
+        }
+    }()
+    */
 
 	return kv
 }

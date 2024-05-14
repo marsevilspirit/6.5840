@@ -39,20 +39,14 @@ func MakeClerk(server *labrpc.ClientEnd) *Clerk {
 func (ck *Clerk) Get(key string) string {
 // You will have to modify this function.
 
-    getArgs := GetArgs{}
-    getArgs.Key = key
-    //getArgs.Task_Id = uuid.New().String()
+    getArgs := GetArgs{
+        Key: key,
+    }
 
     getReply := GetReply{}
     
-    for {
-        ok := ck.server.Call("KVServer.Get", &getArgs, &getReply)
-        if !ok {
-            //fmt.Println("Get failed(retry)")
-            continue
-        } 
-        break
-    }
+	for !ck.server.Call("KVServer.Get", &getArgs, &getReply) {
+	}
 
 	return getReply.Value
 }
@@ -67,38 +61,29 @@ func (ck *Clerk) Get(key string) string {
 // arguments. and reply must be passed as a pointer.
 func (ck *Clerk) PutAppend(key string, value string, op string) string {
 	// You will have to modify this function.
-    put_append_args := PutAppendArgs{}
-    put_append_args.Key = key
-    put_append_args.Value = value
-    put_append_args.Task_Id = uuid.New().String()
+    id := uuid.New()
+    put_append_args := PutAppendArgs{
+        Key:            key,
+        Value:          value,
+        Task_Id:        id.ID(),
+        Mode:           Mode_Modify,
+    }
 
     put_append_reply := PutAppendReply{}
 
+	for !ck.server.Call("KVServer."+op, &put_append_args, &put_append_reply) {
+	}
 
+	ret := put_append_reply.Value
 
-    if op == "Put" {
-        for {
-            ok := ck.server.Call("KVServer.Put", &put_append_args, &put_append_reply)
-            if !ok {
-                //fmt.Println("Put failed(retry)")
-                continue
-            }
-            return put_append_reply.Value
-        }
-    }
-
-    if op == "Append" {
-        for {
-            ok := ck.server.Call("KVServer.Append", &put_append_args, &put_append_reply)
-            if !ok {
-                //fmt.Println("Append failed(retry)")
-                continue
-            }
-            return put_append_reply.Value
-        }
-    }
-
-    return ""
+	req := PutAppendArgs{
+		Task_Id: id.ID(),
+		Mode:      Mode_Report,
+	}
+	rsp := PutAppendReply{}
+	for !ck.server.Call("KVServer."+op, &req, &rsp) {
+	}
+	return ret
 }
 
 func (ck *Clerk) Put(key string, value string) {
