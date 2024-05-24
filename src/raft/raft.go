@@ -308,6 +308,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
     defer rf.mu.Unlock()
 
     if args.Term < rf.currentTerm {
+        fmt.Println("becase args.Term < rf.currentTerm failed", args.Term, rf.currentTerm)
         reply.Success = false
         reply.Term = rf.currentTerm
         return
@@ -328,20 +329,19 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
     }
 
     /*
-    if args.PrevLogIndex >= len(rf.log) || (args.PrevLogIndex >= 0 && rf.log[args.PrevLogIndex].Term != args.PrevLogTerm) {
-        reply.Success = false
-        return
-    }
-    */
-
     if args.Entries == nil {
         fmt.Println(Yellow, "Server", rf.me, "heartbeat from", args.LeaderId, "term", rf.currentTerm, Reset)
     }
+    */
+
+    if args.PrevLogIndex >= len(rf.log) || (args.PrevLogIndex >= 0 && rf.log[args.PrevLogIndex].Term != args.PrevLogTerm) {
+        fmt.Println("becase args.PrevLogIndex >= len(rf.log) || (args.PrevLogIndex >= 0 && rf.log[args.PrevLogIndex].Term != args.PrevLogTerm) failed", args.PrevLogIndex, len(rf.log), args.PrevLogTerm)
+        reply.Success = false
+        return
+    }
 
     if args.Entries != nil && (args.PrevLogIndex >= len(rf.log) || rf.log[args.PrevLogIndex].Term != args.PrevLogTerm) {
-        // 校验PrevLogIndex和PrevLogTerm不合法
-        // 2. Reply false if log doesn’t contain an entry at prevLogIndex whose term matches prevLogTerm (§5.3)
-
+        fmt.Println("becase args.PrevLogIndex >= len(rf.log) || rf.log[args.PrevLogIndex].Term != args.PrevLogTerm failed", args.PrevLogIndex, len(rf.log), args.PrevLogTerm)
         reply.Term = rf.currentTerm
         rf.mu.Unlock()
         reply.Success = false
@@ -375,12 +375,61 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 func (rf *Raft) Start(command interface{}) (int, int, bool) {
     index := -1
     term := -1
-    isLeader := true
+    isLeader := false 
 
     // Your code here (3B).
 
+    rf.mu.Lock()
+    defer rf.mu.Unlock()
+
+    isLeader = rf.state == Leader
+
+    if !isLeader {
+        return index, term, isLeader 
+    }
+
+    LogEntry := LogEntry{
+        Term: rf.currentTerm,
+        Command: command,
+    }
+
+    rf.log = append(rf.log, LogEntry)
+
+    index = len(rf.log) - 1 
+    term = rf.currentTerm
+
+    go rf.replicateLogEntries()
 
     return index, term, isLeader
+}
+
+func (rf *Raft) replicateLogEntries() {
+    rf.mu.Lock()
+
+    args := &AppendEntriesArgs{
+        Term: rf.currentTerm,
+        LeaderId: rf.me,
+        PrevLogIndex: rf.commitIndex,
+        PrevLogTerm: rf.log[rf.commitIndex].Term,
+        Entries: rf.log[rf.commitIndex:],
+        LeaderCommit: rf.commitIndex,
+    }
+
+    reply := &AppendEntriesReply{}
+
+    rf.mu.Unlock()
+
+    for i := 0; i < len(rf.peers); i++ {
+        if i == rf.me {
+            continue
+        }
+
+        fmt.Println("replicateLogEntries server", i, args)
+
+        go func(server int, args *AppendEntriesArgs) {
+            rf.sendAppendEntries(server, args, reply)
+        }(i, args)
+    }
 }
 
 // the tester doesn't halt goroutines created by Raft after each test,
@@ -540,8 +589,6 @@ func (rf *Raft) handleHeartBeat(serverTo int, args *AppendEntriesArgs) {
 }
 
 func (rf *Raft) SendHeartBeats() {
-	fmt.Printf("server %v start sending heartbeats\n", rf.me)
-
 	for !rf.killed() {
 		rf.mu.Lock()
 		if rf.state != Leader {
@@ -572,6 +619,10 @@ func (rf *Raft) SendHeartBeats() {
 
 
 func (rf *Raft) sendAppendEntries(server int, args *AppendEntriesArgs, reply *AppendEntriesReply) bool {
+    if args.Entries != nil {
+        fmt.Printf("sendAppendEntries to server %v args= %+v\n", rf.me, args)
+    }
+
     ok := rf.peers[server].Call("Raft.AppendEntries", args, reply)
     
     rf.mu.Lock()
@@ -581,6 +632,13 @@ func (rf *Raft) sendAppendEntries(server int, args *AppendEntriesArgs, reply *Ap
         fmt.Println(Red, "Server", rf.me, "sendAppendEntries to", server, "failed", "term", rf.currentTerm, Reset)
         return false
     }
+    
+    if reply.Success {
+        fmt.Println(Green, "AppendEntries success", Reset, "server", rf.me, "to", server, "term", rf.currentTerm)
+    } else {
+        fmt.Println(Red, "AppendEntries failed", Reset, "server", rf.me, "to", server, "term", rf.currentTerm)
+    }
+
     return true
 }
 
