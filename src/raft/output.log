@@ -1,760 +1,149 @@
 === RUN   TestInitialElection3A
 Test (3A): initial election ...
-[34m Server 0 starts election term 0 [0m
-server 2 同意向 server 0投票
-	args= &{Term:1 CandidateId:0 LastLogIndex:-1 LastLogTerm:0}
-server 1 同意向 server 0投票
-	args= &{Term:1 CandidateId:0 LastLogIndex:-1 LastLogTerm:0}
-[32m Server 0 becomes leader term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-[33m Server 2 heartbeat from 0 term 1 [0m
-[33m Server 1 heartbeat from 0 term 1 [0m
-  ... Passed --   3.5  3   58   14990    0
---- PASS: TestInitialElection3A (3.51s)
-=== RUN   TestReElection3A
-Test (3A): election after network failure ...
 [34m Server 1 starts election term 0 [0m
-server 2 同意向 server 1投票
-	args= &{Term:1 CandidateId:1 LastLogIndex:-1 LastLogTerm:0}
 server 0 同意向 server 1投票
 	args= &{Term:1 CandidateId:1 LastLogIndex:-1 LastLogTerm:0}
-[32m Server 1 becomes leader term 1 [0m
-[33m Server 2 heartbeat from 1 term 1 [0m
-[33m Server 0 heartbeat from 1 term 1 [0m
-[33m Server 2 heartbeat from 1 term 1 [0m
-[33m Server 0 heartbeat from 1 term 1 [0m
-[33m Server 2 heartbeat from 1 term 1 [0m
-[33m Server 0 heartbeat from 1 term 1 [0m
-[33m Server 2 heartbeat from 1 term 1 [0m
-[33m Server 0 heartbeat from 1 term 1 [0m
-[34m Server 0 starts election term 1 [0m
-server 2 同意向 server 0投票
-	args= &{Term:2 CandidateId:0 LastLogIndex:-1 LastLogTerm:0}
-[32m Server 0 becomes leader term 2 [0m
-[33m Server 2 heartbeat from 0 term 2 [0m
-[33m Server 2 heartbeat from 0 term 2 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 1 state 2 [0m
-[33m Server 2 heartbeat from 0 term 2 [0m
-[33m Server 2 heartbeat from 0 term 2 [0m
-[34m Server 1 becomes follower term 2 [0m
-[33m Server 1 heartbeat from 0 term 2 [0m
-[33m Server 2 heartbeat from 0 term 2 [0m
-[33m Server 1 heartbeat from 0 term 2 [0m
-[33m Server 2 heartbeat from 0 term 2 [0m
-[33m Server 1 heartbeat from 0 term 2 [0m
-[33m Server 2 heartbeat from 0 term 2 [0m
-[33m Server 1 heartbeat from 0 term 2 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 2 state 0 [0m
-[33m Server 2 heartbeat from 0 term 2 [0m
-[33m Server 1 heartbeat from 0 term 2 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 2 state 0 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 2 state 0 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[34m Server 1 starts election term 2 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 2 state 2 [0m
-[34m Server 2 starts election term 2 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 3 state 1 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 3 state 1 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 1 sendRequestVote to 2 failed term 3 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 3 state 1 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 3 state 1 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 3 state 1 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 3 state 1 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 3 state 1 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 3 state 1 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 3 state 1 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 3 state 1 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 3 state 1 [0m
-[31m Server 2 sendRequestVote to 0 failed term 3 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 3 state 1 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 3 state 1 [0m
-[31m Server 2 sendRequestVote to 1 failed term 3 [0m
-[31m Server 2 election failed term 3 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[34m Server 2 starts election term 3 [0m
-server 1 同意向 server 2投票
-	args= &{Term:4 CandidateId:2 LastLogIndex:-1 LastLogTerm:0}
-[32m Server 2 becomes leader term 4 [0m
-[33m Server 1 heartbeat from 2 term 4 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 2 state 2 [0m
-[33m Server 1 heartbeat from 2 term 4 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 2 state 2 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 4 state 0 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 4 state 0 [0m
-[31m Server 1 sendRequestVote to 0 failed term 4 [0m
-[31m Server 1 election failed term 4 [0m
-[33m Server 1 heartbeat from 2 term 4 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 2 state 2 [0m
-[33m Server 1 heartbeat from 2 term 4 [0m
-[34m Server 0 becomes follower term 4 [0m
-[33m Server 0 heartbeat from 2 term 4 [0m
-[31m Server 2 sendAppendEntries to 0 failed term 4 state 2 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 4 state 0 [0m
-[33m Server 1 heartbeat from 2 term 4 [0m
-[33m Server 0 heartbeat from 2 term 4 [0m
-[33m Server 1 heartbeat from 2 term 4 [0m
-[33m Server 0 heartbeat from 2 term 4 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[33m Server 1 heartbeat from 2 term 4 [0m
-[33m Server 0 heartbeat from 2 term 4 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[33m Server 1 heartbeat from 2 term 4 [0m
-[33m Server 0 heartbeat from 2 term 4 [0m
-  ... Passed --   8.5  3  182   38062    0
---- PASS: TestReElection3A (8.47s)
-=== RUN   TestManyElections3A
-Test (3A): multiple elections ...
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 0 sendRequestVote to 1 failed term 4 [0m
-[31m Server 0 election failed term 4 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[34m Server 3 starts election term 0 [0m
-server 2 同意向 server 3投票
-	args= &{Term:1 CandidateId:3 LastLogIndex:-1 LastLogTerm:0}
-server 0 同意向 server 3投票
-	args= &{Term:1 CandidateId:3 LastLogIndex:-1 LastLogTerm:0}
-server 6 同意向 server 3投票
-	args= &{Term:1 CandidateId:3 LastLogIndex:-1 LastLogTerm:0}
-server 5 同意向 server 3投票
-	args= &{Term:1 CandidateId:3 LastLogIndex:-1 LastLogTerm:0}
-server 4 同意向 server 3投票
-	args= &{Term:1 CandidateId:3 LastLogIndex:-1 LastLogTerm:0}
-[32m Server 3 becomes leader term 1 [0m
-server 1 同意向 server 3投票
-	args= &{Term:1 CandidateId:3 LastLogIndex:-1 LastLogTerm:0}
-[33m Server 6 heartbeat from 3 term 1 [0m
-[33m Server 0 heartbeat from 3 term 1 [0m
-[33m Server 2 heartbeat from 3 term 1 [0m
-[33m Server 1 heartbeat from 3 term 1 [0m
-[33m Server 4 heartbeat from 3 term 1 [0m
-[33m Server 5 heartbeat from 3 term 1 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[33m Server 6 heartbeat from 3 term 1 [0m
-[33m Server 1 heartbeat from 3 term 1 [0m
-[33m Server 4 heartbeat from 3 term 1 [0m
-[33m Server 2 heartbeat from 3 term 1 [0m
-[33m Server 0 heartbeat from 3 term 1 [0m
-[33m Server 5 heartbeat from 3 term 1 [0m
-[33m Server 6 heartbeat from 3 term 1 [0m
-[33m Server 1 heartbeat from 3 term 1 [0m
-[33m Server 0 heartbeat from 3 term 1 [0m
-[33m Server 4 heartbeat from 3 term 1 [0m
-[33m Server 2 heartbeat from 3 term 1 [0m
-[33m Server 5 heartbeat from 3 term 1 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 2 sendAppendEntries to 0 failed term 4 state 2 [0m
-[33m Server 0 heartbeat from 3 term 1 [0m
-[33m Server 1 heartbeat from 3 term 1 [0m
-[33m Server 2 heartbeat from 3 term 1 [0m
-[33m Server 6 heartbeat from 3 term 1 [0m
-[33m Server 4 heartbeat from 3 term 1 [0m
-[33m Server 5 heartbeat from 3 term 1 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[33m Server 2 heartbeat from 3 term 1 [0m
-[33m Server 6 heartbeat from 3 term 1 [0m
-[33m Server 5 heartbeat from 3 term 1 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[33m Server 2 heartbeat from 3 term 1 [0m
-[33m Server 6 heartbeat from 3 term 1 [0m
-[33m Server 5 heartbeat from 3 term 1 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 2 sendAppendEntries to 0 failed term 4 state 2 [0m
-[33m Server 6 heartbeat from 3 term 1 [0m
-[33m Server 5 heartbeat from 3 term 1 [0m
-[33m Server 2 heartbeat from 3 term 1 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[34m Server 0 starts election term 1 [0m
-[33m Server 6 heartbeat from 3 term 1 [0m
-[33m Server 5 heartbeat from 3 term 1 [0m
-[33m Server 2 heartbeat from 3 term 1 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[33m Server 6 heartbeat from 3 term 1 [0m
-[33m Server 2 heartbeat from 3 term 1 [0m
-[33m Server 5 heartbeat from 3 term 1 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[33m Server 6 heartbeat from 3 term 1 [0m
-[33m Server 2 heartbeat from 3 term 1 [0m
-[33m Server 5 heartbeat from 3 term 1 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[34m Server 1 starts election term 1 [0m
-server 6 同意向 server 1投票
-	args= &{Term:2 CandidateId:1 LastLogIndex:-1 LastLogTerm:0}
-server 3 同意向 server 1投票
-	args= &{Term:2 CandidateId:1 LastLogIndex:-1 LastLogTerm:0}
-server 5 同意向 server 1投票
-	args= &{Term:2 CandidateId:1 LastLogIndex:-1 LastLogTerm:0}
-[32m Server 1 becomes leader term 2 [0m
-server 4 同意向 server 1投票
-	args= &{Term:2 CandidateId:1 LastLogIndex:-1 LastLogTerm:0}
-[31m Server 0 sendRequestVote to 4 failed term 2 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[33m Server 6 heartbeat from 1 term 2 [0m
-[33m Server 5 heartbeat from 1 term 2 [0m
-[33m Server 3 heartbeat from 1 term 2 [0m
-[33m Server 4 heartbeat from 1 term 2 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[33m Server 6 heartbeat from 1 term 2 [0m
-[33m Server 3 heartbeat from 1 term 2 [0m
-[33m Server 4 heartbeat from 1 term 2 [0m
-[33m Server 5 heartbeat from 1 term 2 [0m
-[33m Server 3 heartbeat from 1 term 2 [0m
-[33m Server 6 heartbeat from 1 term 2 [0m
-[33m Server 4 heartbeat from 1 term 2 [0m
-[33m Server 5 heartbeat from 1 term 2 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 3 sendAppendEntries to 4 failed term 2 state 0 [0m
-[33m Server 6 heartbeat from 1 term 2 [0m
-[33m Server 3 heartbeat from 1 term 2 [0m
-[33m Server 4 heartbeat from 1 term 2 [0m
-[33m Server 5 heartbeat from 1 term 2 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 0 sendRequestVote to 3 failed term 2 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[33m Server 6 heartbeat from 1 term 2 [0m
-[33m Server 3 heartbeat from 1 term 2 [0m
-[33m Server 5 heartbeat from 1 term 2 [0m
-[33m Server 4 heartbeat from 1 term 2 [0m
-[31m Server 3 sendAppendEntries to 1 failed term 2 state 0 [0m
-[33m Server 4 heartbeat from 1 term 2 [0m
-[33m Server 3 heartbeat from 1 term 2 [0m
-[33m Server 0 heartbeat from 1 term 2 [0m
-[31m Server 3 sendAppendEntries to 0 failed term 2 state 0 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[34m Server 2 starts election term 1 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 3 sendAppendEntries to 0 failed term 2 state 0 [0m
-[33m Server 0 heartbeat from 1 term 2 [0m
-[33m Server 3 heartbeat from 1 term 2 [0m
-[33m Server 4 heartbeat from 1 term 2 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[33m Server 4 heartbeat from 1 term 2 [0m
-[33m Server 0 heartbeat from 1 term 2 [0m
-[33m Server 3 heartbeat from 1 term 2 [0m
-[33m Server 4 heartbeat from 1 term 2 [0m
-[33m Server 3 heartbeat from 1 term 2 [0m
-[33m Server 0 heartbeat from 1 term 2 [0m
-[31m Server 3 sendAppendEntries to 1 failed term 2 state 0 [0m
-[33m Server 6 heartbeat from 1 term 2 [0m
-[33m Server 0 heartbeat from 1 term 2 [0m
-[33m Server 4 heartbeat from 1 term 2 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[34m Server 5 starts election term 2 [0m
-[31m Server 1 sendRequestVote to 0 failed term 2 [0m
-[33m Server 6 heartbeat from 1 term 2 [0m
-[33m Server 4 heartbeat from 1 term 2 [0m
-[33m Server 0 heartbeat from 1 term 2 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 3 sendAppendEntries to 4 failed term 2 state 0 [0m
-[33m Server 6 heartbeat from 1 term 2 [0m
-[33m Server 0 heartbeat from 1 term 2 [0m
-[33m Server 4 heartbeat from 1 term 2 [0m
-[31m Server 3 sendAppendEntries to 4 failed term 2 state 0 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 3 sendAppendEntries to 4 failed term 2 state 0 [0m
-[33m Server 4 heartbeat from 1 term 2 [0m
-[33m Server 6 heartbeat from 1 term 2 [0m
-[33m Server 0 heartbeat from 1 term 2 [0m
-[34m Server 3 starts election term 2 [0m
-[33m Server 6 heartbeat from 1 term 2 [0m
-[33m Server 0 heartbeat from 1 term 2 [0m
-[33m Server 4 heartbeat from 1 term 2 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[33m Server 0 heartbeat from 1 term 2 [0m
-[33m Server 6 heartbeat from 1 term 2 [0m
-[33m Server 4 heartbeat from 1 term 2 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 0 sendRequestVote to 6 failed term 2 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 0 sendRequestVote to 5 failed term 2 [0m
-[31m Server 3 sendAppendEntries to 0 failed term 3 state 1 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 2 state 2 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 2 state 2 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 2 state 2 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 2 sendRequestVote to 0 failed term 2 [0m
-[34m Server 4 starts election term 2 [0m
-server 5 拒绝向 server 4投票: 已投票
-	args= &{Term:3 CandidateId:4 LastLogIndex:-1 LastLogTerm:0}
-server 2 同意向 server 4投票
-	args= &{Term:3 CandidateId:4 LastLogIndex:-1 LastLogTerm:0}
-server 0 同意向 server 4投票
-	args= &{Term:3 CandidateId:4 LastLogIndex:-1 LastLogTerm:0}
-[32m Server 4 becomes leader term 3 [0m
-[33m Server 0 heartbeat from 4 term 3 [0m
-[33m Server 2 heartbeat from 4 term 3 [0m
-[33m Server 5 heartbeat from 4 term 3 [0m
-[31m Server 1 sendAppendEntries to 5 failed term 2 state 2 [0m
-[33m Server 2 heartbeat from 4 term 3 [0m
-[33m Server 5 heartbeat from 4 term 3 [0m
-[33m Server 0 heartbeat from 4 term 3 [0m
-[34m Server 6 starts election term 2 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 2 state 2 [0m
-[31m Server 1 sendAppendEntries to 3 failed term 2 state 2 [0m
-[33m Server 5 heartbeat from 4 term 3 [0m
-[33m Server 2 heartbeat from 4 term 3 [0m
-[33m Server 0 heartbeat from 4 term 3 [0m
-[31m Server 3 sendRequestVote to 1 failed term 3 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 2 state 2 [0m
-[31m Server 1 sendAppendEntries to 3 failed term 3 state 0 [0m
-[31m Server 1 sendAppendEntries to 6 failed term 3 state 0 [0m
-[31m Server 3 sendAppendEntries to 4 failed term 3 state 1 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 3 state 0 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 3 state 0 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 3 state 0 [0m
-[31m Server 4 sendAppendEntries to 1 failed term 3 state 2 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 3 state 0 [0m
-[31m Server 1 sendAppendEntries to 3 failed term 3 state 0 [0m
-[31m Server 4 sendRequestVote to 3 failed term 3 [0m
-[31m Server 4 sendAppendEntries to 6 failed term 3 state 2 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 3 state 0 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 3 sendAppendEntries to 1 failed term 3 state 1 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 3 state 0 [0m
-[31m Server 4 sendAppendEntries to 6 failed term 3 state 2 [0m
-[31m Server 4 sendAppendEntries to 5 failed term 3 state 2 [0m
-[31m Server 1 sendAppendEntries to 3 failed term 3 state 0 [0m
-[31m Server 1 sendAppendEntries to 5 failed term 3 state 0 [0m
-[31m Server 0 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 4 sendAppendEntries to 1 failed term 3 state 2 [0m
-[31m Server 2 sendRequestVote to 0 failed term 4 [0m
-[31m Server 1 sendAppendEntries to 6 failed term 3 state 0 [0m
-[31m Server 4 sendAppendEntries to 2 failed term 3 state 2 [0m
-[31m Server 4 sendAppendEntries to 5 failed term 3 state 2 [0m
-[31m Server 3 sendRequestVote to 4 failed term 3 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 4 sendAppendEntries to 6 failed term 3 state 2 [0m
-[31m Server 3 sendAppendEntries to 1 failed term 3 state 1 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 3 state 0 [0m
-[31m Server 4 sendAppendEntries to 0 failed term 3 state 2 [0m
-[31m Server 4 sendAppendEntries to 0 failed term 3 state 2 [0m
-[31m Server 1 sendAppendEntries to 5 failed term 3 state 0 [0m
-[31m Server 4 sendAppendEntries to 1 failed term 3 state 2 [0m
-[31m Server 1 sendAppendEntries to 3 failed term 3 state 0 [0m
-[31m Server 1 sendAppendEntries to 5 failed term 3 state 0 [0m
-[31m Server 4 sendAppendEntries to 5 failed term 3 state 2 [0m
-[31m Server 1 sendAppendEntries to 5 failed term 3 state 0 [0m
-[31m Server 4 sendAppendEntries to 5 failed term 3 state 2 [0m
-[31m Server 3 sendRequestVote to 0 failed term 3 [0m
-[31m Server 6 sendRequestVote to 3 failed term 3 [0m
-[31m Server 5 sendRequestVote to 2 failed term 3 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 3 state 0 [0m
-[31m Server 4 sendAppendEntries to 5 failed term 3 state 2 [0m
-[31m Server 6 sendRequestVote to 1 failed term 3 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 3 state 0 [0m
-[31m Server 0 sendRequestVote to 2 failed term 3 [0m
-[31m Server 4 sendAppendEntries to 0 failed term 3 state 2 [0m
-[31m Server 2 sendRequestVote to 3 failed term 3 [0m
-[31m Server 4 sendAppendEntries to 1 failed term 3 state 2 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 3 state 0 [0m
-[31m Server 4 sendAppendEntries to 5 failed term 3 state 2 [0m
-[31m Server 4 sendAppendEntries to 3 failed term 3 state 2 [0m
-[31m Server 3 sendAppendEntries to 0 failed term 3 state 1 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 3 state 0 [0m
-[31m Server 0 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 2 sendRequestVote to 5 failed term 3 [0m
-[31m Server 4 sendAppendEntries to 0 failed term 3 state 2 [0m
-[31m Server 1 sendRequestVote to 2 failed term 3 [0m
-[31m Server 1 election failed term 3 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 3 state 0 [0m
-[31m Server 1 sendAppendEntries to 6 failed term 3 state 0 [0m
-[31m Server 1 sendAppendEntries to 5 failed term 3 state 0 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 3 state 0 [0m
-[34m Server 1 starts election term 3 [0m
-server 3 同意向 server 1投票
-	args= &{Term:4 CandidateId:1 LastLogIndex:-1 LastLogTerm:0}
-server 5 同意向 server 1投票
-	args= &{Term:4 CandidateId:1 LastLogIndex:-1 LastLogTerm:0}
 server 2 同意向 server 1投票
-	args= &{Term:4 CandidateId:1 LastLogIndex:-1 LastLogTerm:0}
-[32m Server 1 becomes leader term 4 [0m
-[31m Server 4 sendAppendEntries to 6 failed term 3 state 2 [0m
-[31m Server 4 sendAppendEntries to 6 failed term 3 state 2 [0m
-[31m Server 4 sendAppendEntries to 5 failed term 3 state 2 [0m
-[33m Server 2 heartbeat from 1 term 4 [0m
-[33m Server 3 heartbeat from 1 term 4 [0m
-[33m Server 5 heartbeat from 1 term 4 [0m
-[31m Server 4 sendAppendEntries to 5 failed term 3 state 2 [0m
-[31m Server 2 sendRequestVote to 1 failed term 4 [0m
-[31m Server 4 sendAppendEntries to 3 failed term 3 state 2 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 4 state 2 [0m
-[31m Server 1 sendAppendEntries to 5 failed term 4 state 2 [0m
-[33m Server 2 heartbeat from 1 term 4 [0m
-[33m Server 3 heartbeat from 1 term 4 [0m
-[33m Server 5 heartbeat from 1 term 4 [0m
-[31m Server 4 sendAppendEntries to 0 failed term 3 state 2 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 4 state 2 [0m
-[31m Server 4 sendAppendEntries to 3 failed term 3 state 2 [0m
-[34m Server 6 becomes follower term 4 [0m
-[33m Server 6 heartbeat from 1 term 4 [0m
-[34m Server 4 becomes follower term 4 [0m
-[33m Server 4 heartbeat from 1 term 4 [0m
-[34m Server 0 becomes follower term 4 [0m
-[33m Server 0 heartbeat from 1 term 4 [0m
-[31m Server 6 sendRequestVote to 5 failed term 4 [0m
-[31m Server 4 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 4 sendAppendEntries to 6 failed term 4 state 0 [0m
-[31m Server 2 sendRequestVote to 6 failed term 4 [0m
-[33m Server 6 heartbeat from 1 term 4 [0m
-[33m Server 0 heartbeat from 1 term 4 [0m
-[33m Server 4 heartbeat from 1 term 4 [0m
-[31m Server 4 sendAppendEntries to 3 failed term 4 state 0 [0m
-[31m Server 4 sendAppendEntries to 1 failed term 4 state 0 [0m
-[33m Server 6 heartbeat from 1 term 4 [0m
-[33m Server 0 heartbeat from 1 term 4 [0m
-[33m Server 4 heartbeat from 1 term 4 [0m
-[31m Server 4 sendAppendEntries to 6 failed term 4 state 0 [0m
-[31m Server 1 sendAppendEntries to 5 failed term 4 state 2 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 4 state 2 [0m
-[31m Server 4 sendAppendEntries to 0 failed term 4 state 0 [0m
-[33m Server 6 heartbeat from 1 term 4 [0m
-[33m Server 0 heartbeat from 1 term 4 [0m
-[33m Server 4 heartbeat from 1 term 4 [0m
-[31m Server 5 sendRequestVote to 3 failed term 4 [0m
-[31m Server 1 sendAppendEntries to 6 failed term 4 state 2 [0m
-[31m Server 1 sendAppendEntries to 6 failed term 4 state 2 [0m
-[31m Server 4 sendAppendEntries to 0 failed term 4 state 0 [0m
-[33m Server 6 heartbeat from 1 term 4 [0m
-[33m Server 0 heartbeat from 1 term 4 [0m
-[33m Server 4 heartbeat from 1 term 4 [0m
-[31m Server 5 sendRequestVote to 1 failed term 4 [0m
-[31m Server 3 sendAppendEntries to 4 failed term 4 state 0 [0m
-[31m Server 1 sendAppendEntries to 3 failed term 4 state 2 [0m
-[31m Server 4 sendAppendEntries to 6 failed term 4 state 0 [0m
-[31m Server 4 sendAppendEntries to 3 failed term 4 state 0 [0m
-[31m Server 4 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 4 state 2 [0m
-[31m Server 4 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 4 sendAppendEntries to 3 failed term 4 state 0 [0m
-[31m Server 4 sendAppendEntries to 6 failed term 4 state 0 [0m
-[33m Server 0 heartbeat from 1 term 4 [0m
-[33m Server 3 heartbeat from 1 term 4 [0m
-[33m Server 2 heartbeat from 1 term 4 [0m
-[31m Server 4 sendAppendEntries to 5 failed term 4 state 0 [0m
-[31m Server 1 sendAppendEntries to 3 failed term 4 state 2 [0m
-[33m Server 0 heartbeat from 1 term 4 [0m
-[33m Server 3 heartbeat from 1 term 4 [0m
-[33m Server 2 heartbeat from 1 term 4 [0m
-[31m Server 1 sendRequestVote to 0 failed term 4 [0m
-[31m Server 1 sendAppendEntries to 5 failed term 4 state 2 [0m
-[33m Server 3 heartbeat from 1 term 4 [0m
-[33m Server 2 heartbeat from 1 term 4 [0m
-[33m Server 0 heartbeat from 1 term 4 [0m
-[31m Server 1 sendAppendEntries to 5 failed term 4 state 2 [0m
-[31m Server 1 sendAppendEntries to 4 failed term 4 state 2 [0m
-[31m Server 1 sendAppendEntries to 5 failed term 4 state 2 [0m
-[33m Server 2 heartbeat from 1 term 4 [0m
-[33m Server 0 heartbeat from 1 term 4 [0m
-[33m Server 3 heartbeat from 1 term 4 [0m
-[31m Server 1 sendAppendEntries to 5 failed term 4 state 2 [0m
-[31m Server 4 sendAppendEntries to 3 failed term 4 state 0 [0m
-[31m Server 4 sendAppendEntries to 0 failed term 4 state 0 [0m
-[31m Server 4 sendAppendEntries to 5 failed term 4 state 0 [0m
-[31m Server 4 sendAppendEntries to 6 failed term 4 state 0 [0m
-[33m Server 3 heartbeat from 1 term 4 [0m
-[33m Server 2 heartbeat from 1 term 4 [0m
-[33m Server 0 heartbeat from 1 term 4 [0m
-[31m Server 4 sendAppendEntries to 3 failed term 4 state 0 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 4 state 2 [0m
-[31m Server 4 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 1 sendAppendEntries to 6 failed term 4 state 2 [0m
-[31m Server 4 sendAppendEntries to 3 failed term 4 state 0 [0m
-[31m Server 4 sendAppendEntries to 6 failed term 4 state 0 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 4 state 2 [0m
-[31m Server 4 sendAppendEntries to 6 failed term 4 state 0 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 4 state 2 [0m
-[31m Server 4 sendAppendEntries to 3 failed term 4 state 0 [0m
-[31m Server 5 sendRequestVote to 0 failed term 4 [0m
-[31m Server 6 sendRequestVote to 2 failed term 4 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 4 state 2 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 4 state 2 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 4 state 2 [0m
-[31m Server 5 sendRequestVote to 4 failed term 4 [0m
-[31m Server 4 sendAppendEntries to 3 failed term 4 state 0 [0m
-[31m Server 4 sendAppendEntries to 5 failed term 4 state 0 [0m
-[31m Server 1 sendAppendEntries to 6 failed term 4 state 2 [0m
-[31m Server 4 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 4 sendAppendEntries to 0 failed term 4 state 0 [0m
-[31m Server 4 sendAppendEntries to 6 failed term 4 state 0 [0m
-[31m Server 1 sendAppendEntries to 4 failed term 4 state 2 [0m
-[31m Server 1 sendAppendEntries to 6 failed term 4 state 2 [0m
-[31m Server 4 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 4 sendAppendEntries to 3 failed term 4 state 0 [0m
-[31m Server 4 sendAppendEntries to 0 failed term 4 state 0 [0m
-[31m Server 4 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 1 sendAppendEntries to 5 failed term 4 state 2 [0m
-[31m Server 1 sendAppendEntries to 5 failed term 4 state 2 [0m
-[31m Server 1 sendAppendEntries to 4 failed term 4 state 2 [0m
-[31m Server 3 sendRequestVote to 5 failed term 4 [0m
-[31m Server 3 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 4 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 1 sendAppendEntries to 5 failed term 4 state 2 [0m
-[31m Server 1 sendAppendEntries to 5 failed term 4 state 2 [0m
-[31m Server 3 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 1 sendAppendEntries to 6 failed term 4 state 2 [0m
-[31m Server 4 sendAppendEntries to 5 failed term 4 state 0 [0m
-[31m Server 1 sendAppendEntries to 3 failed term 4 state 2 [0m
-[31m Server 4 sendAppendEntries to 6 failed term 4 state 0 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 4 state 2 [0m
-[31m Server 4 sendAppendEntries to 5 failed term 4 state 0 [0m
-[31m Server 1 sendAppendEntries to 5 failed term 4 state 2 [0m
-[31m Server 4 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 4 sendAppendEntries to 0 failed term 4 state 0 [0m
-[31m Server 1 sendAppendEntries to 3 failed term 4 state 2 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 4 state 2 [0m
-[31m Server 3 sendRequestVote to 2 failed term 4 [0m
-[31m Server 1 sendAppendEntries to 6 failed term 4 state 2 [0m
-[31m Server 4 sendAppendEntries to 2 failed term 4 state 0 [0m
-[31m Server 4 sendRequestVote to 1 failed term 4 [0m
-[31m Server 4 sendAppendEntries to 3 failed term 4 state 0 [0m
-[31m Server 0 sendRequestVote to 1 failed term 4 [0m
-[31m Server 0 election failed term 4 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 4 state 2 [0m
-[31m Server 4 sendAppendEntries to 1 failed term 4 state 0 [0m
-[31m Server 4 sendAppendEntries to 5 failed term 4 state 0 [0m
-[31m Server 3 sendAppendEntries to 0 failed term 4 state 0 [0m
-[31m Server 4 sendAppendEntries to 0 failed term 4 state 0 [0m
-[31m Server 1 sendAppendEntries to 6 failed term 4 state 2 [0m
-[31m Server 1 sendAppendEntries to 5 failed term 4 state 2 [0m
-[31m Server 4 sendAppendEntries to 0 failed term 4 state 0 [0m
-[31m Server 1 sendAppendEntries to 6 failed term 4 state 2 [0m
-[31m Server 3 sendRequestVote to 6 failed term 4 [0m
-[31m Server 3 election failed term 4 [0m
-[34m Server 0 starts election term 4 [0m
-server 6 同意向 server 0投票
-	args= &{Term:5 CandidateId:0 LastLogIndex:-1 LastLogTerm:0}
-server 4 同意向 server 0投票
-	args= &{Term:5 CandidateId:0 LastLogIndex:-1 LastLogTerm:0}
-server 5 同意向 server 0投票
-	args= &{Term:5 CandidateId:0 LastLogIndex:-1 LastLogTerm:0}
-[32m Server 0 becomes leader term 5 [0m
-[31m Server 1 sendAppendEntries to 4 failed term 4 state 2 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 4 state 2 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 4 state 2 [0m
-[33m Server 6 heartbeat from 0 term 5 [0m
-[33m Server 4 heartbeat from 0 term 5 [0m
-[33m Server 5 heartbeat from 0 term 5 [0m
-[31m Server 1 sendAppendEntries to 3 failed term 4 state 2 [0m
-[31m Server 4 sendAppendEntries to 0 failed term 5 state 0 [0m
-[31m Server 3 sendAppendEntries to 0 failed term 4 state 0 [0m
-[31m Server 1 sendAppendEntries to 5 failed term 4 state 2 [0m
-[31m Server 4 sendAppendEntries to 1 failed term 5 state 0 [0m
-[34m Server 3 starts election term 4 [0m
-[31m Server 4 sendAppendEntries to 5 failed term 5 state 0 [0m
-[31m Server 1 sendAppendEntries to 6 failed term 4 state 2 [0m
-[33m Server 6 heartbeat from 0 term 5 [0m
-[33m Server 4 heartbeat from 0 term 5 [0m
-[33m Server 5 heartbeat from 0 term 5 [0m
-[31m Server 4 sendAppendEntries to 0 failed term 5 state 0 [0m
-[31m Server 1 sendAppendEntries to 4 failed term 4 state 2 [0m
-[31m Server 1 sendAppendEntries to 3 failed term 4 state 2 [0m
-[31m Server 1 sendAppendEntries to 4 failed term 4 state 2 [0m
-[31m Server 4 sendAppendEntries to 2 failed term 5 state 0 [0m
-[31m Server 4 sendAppendEntries to 3 failed term 5 state 0 [0m
-[33m Server 6 heartbeat from 0 term 5 [0m
-[33m Server 4 heartbeat from 0 term 5 [0m
-[33m Server 5 heartbeat from 0 term 5 [0m
-[31m Server 1 sendAppendEntries to 5 failed term 4 state 2 [0m
-[31m Server 1 sendAppendEntries to 6 failed term 4 state 2 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 4 state 2 [0m
-[31m Server 1 sendAppendEntries to 4 failed term 4 state 2 [0m
-[31m Server 5 sendRequestVote to 6 failed term 5 [0m
-[31m Server 5 election failed term 5 [0m
-[31m Server 4 sendAppendEntries to 3 failed term 5 state 0 [0m
-[33m Server 6 heartbeat from 0 term 5 [0m
-[33m Server 4 heartbeat from 0 term 5 [0m
-[33m Server 5 heartbeat from 0 term 5 [0m
-[31m Server 1 sendAppendEntries to 4 failed term 4 state 2 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 4 state 2 [0m
-[31m Server 1 sendAppendEntries to 4 failed term 4 state 2 [0m
-[31m Server 1 sendAppendEntries to 4 failed term 4 state 2 [0m
-[31m Server 1 sendAppendEntries to 5 failed term 4 state 2 [0m
-[33m Server 6 heartbeat from 0 term 5 [0m
-[33m Server 4 heartbeat from 0 term 5 [0m
-[33m Server 3 heartbeat from 0 term 5 [0m
-[33m Server 5 heartbeat from 0 term 5 [0m
-[33m Server 1 heartbeat from 0 term 5 [0m
-[33m Server 2 heartbeat from 1 term 4 [0m
-[34m Server 2 becomes follower term 5 [0m
-[33m Server 2 heartbeat from 0 term 5 [0m
-[31m Server 1 sendAppendEntries to 6 failed term 5 state 0 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 5 state 0 [0m
-[31m Server 4 sendRequestVote to 6 failed term 5 [0m
-[31m Server 4 election failed term 5 [0m
-[31m Server 4 sendAppendEntries to 3 failed term 5 state 0 [0m
-[31m Server 1 sendAppendEntries to 4 failed term 5 state 0 [0m
-[31m Server 1 sendAppendEntries to 3 failed term 5 state 0 [0m
-[33m Server 6 heartbeat from 0 term 5 [0m
-[33m Server 3 heartbeat from 0 term 5 [0m
-[33m Server 4 heartbeat from 0 term 5 [0m
-[33m Server 5 heartbeat from 0 term 5 [0m
-[33m Server 2 heartbeat from 0 term 5 [0m
-[33m Server 1 heartbeat from 0 term 5 [0m
-[31m Server 1 sendAppendEntries to 3 failed term 5 state 0 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 5 state 0 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 5 state 0 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 5 state 0 [0m
-[31m Server 1 sendAppendEntries to 3 failed term 5 state 0 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 5 state 0 [0m
-[31m Server 1 sendAppendEntries to 4 failed term 5 state 0 [0m
-[31m Server 4 sendAppendEntries to 1 failed term 5 state 0 [0m
-[33m Server 6 heartbeat from 0 term 5 [0m
-[33m Server 2 heartbeat from 0 term 5 [0m
-[33m Server 4 heartbeat from 0 term 5 [0m
-[33m Server 5 heartbeat from 0 term 5 [0m
-[33m Server 3 heartbeat from 0 term 5 [0m
-[33m Server 1 heartbeat from 0 term 5 [0m
-[31m Server 4 sendAppendEntries to 1 failed term 5 state 0 [0m
-[31m Server 1 sendAppendEntries to 6 failed term 5 state 0 [0m
-[31m Server 1 sendAppendEntries to 5 failed term 5 state 0 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 5 state 0 [0m
-[31m Server 1 sendAppendEntries to 6 failed term 5 state 0 [0m
-[31m Server 1 sendAppendEntries to 4 failed term 5 state 0 [0m
-[33m Server 6 heartbeat from 0 term 5 [0m
-[33m Server 3 heartbeat from 0 term 5 [0m
-[33m Server 1 heartbeat from 0 term 5 [0m
-[33m Server 5 heartbeat from 0 term 5 [0m
-[33m Server 2 heartbeat from 0 term 5 [0m
-[33m Server 4 heartbeat from 0 term 5 [0m
-[31m Server 1 sendAppendEntries to 2 failed term 5 state 0 [0m
-[31m Server 1 sendAppendEntries to 0 failed term 5 state 0 [0m
-[31m Server 6 sendRequestVote to 4 failed term 5 [0m
-[31m Server 1 sendAppendEntries to 5 failed term 5 state 0 [0m
-[31m Server 1 sendAppendEntries to 3 failed term 5 state 0 [0m
-[31m Server 2 sendRequestVote to 4 failed term 5 [0m
-[31m Server 2 election failed term 5 [0m
-[31m Server 1 sendAppendEntries to 3 failed term 5 state 0 [0m
-[31m Server 4 sendAppendEntries to 3 failed term 5 state 0 [0m
-[31m Server 4 sendAppendEntries to 3 failed term 5 state 0 [0m
-[31m Server 1 sendAppendEntries to 4 failed term 5 state 0 [0m
-[31m Server 4 sendAppendEntries to 0 failed term 5 state 0 [0m
-  ... Passed --   9.1  7  642  135298    0
---- PASS: TestManyElections3A (9.05s)
-PASS
-ok  	6.5840/raft	21.030s
+	args= &{Term:1 CandidateId:1 LastLogIndex:-1 LastLogTerm:0}
+[32m server 1 became leader [0m
+server 1 start sending heartbeats
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 2 heartbeat from 1 term 1 [0m
+[33m Server 0 heartbeat from 1 term 1 [0m
+  ... Passed --   4.5  3   62   16042    0
+--- PASS: TestInitialElection3A (4.53s)
+=== RUN   TestReElection3A
+Test (3A): election after network failure ...
+[34m Server 2 starts election term 0 [0m
+server 1 同意向 server 2投票
+	args= &{Term:1 CandidateId:2 LastLogIndex:-1 LastLogTerm:0}
+server 0 同意向 server 2投票
+	args= &{Term:1 CandidateId:2 LastLogIndex:-1 LastLogTerm:0}
+[32m server 2 became leader [0m
+server 2 start sending heartbeats
+[33m Server 0 heartbeat from 2 term 1 [0m
+[33m Server 1 heartbeat from 2 term 1 [0m
+[33m Server 1 heartbeat from 2 term 1 [0m
+[33m Server 0 heartbeat from 2 term 1 [0m
+[33m Server 0 heartbeat from 2 term 1 [0m
+[33m Server 1 heartbeat from 2 term 1 [0m
+[31m Server 2 sendAppendEntries to 1 failed term 1 [0m
+[31m Server 2 sendAppendEntries to 0 failed term 1 [0m
+[31m Server 2 sendAppendEntries to 1 failed term 1 [0m
+[31m Server 2 sendAppendEntries to 1 failed term 1 [0m
+[34m Server 1 starts election term 1 [0m
+server 0 同意向 server 1投票
+	args= &{Term:2 CandidateId:1 LastLogIndex:-1 LastLogTerm:0}
+[32m server 1 became leader [0m
+server 1 start sending heartbeats
+[33m Server 0 heartbeat from 1 term 2 [0m
+[31m Server 2 sendAppendEntries to 1 failed term 1 [0m
+[31m Server 2 sendAppendEntries to 1 failed term 1 [0m
+[33m Server 0 heartbeat from 1 term 2 [0m
+[33m Server 0 heartbeat from 1 term 2 [0m
+[33m Server 0 heartbeat from 1 term 2 [0m
+[34m Server 2 becomes follower term 2 [0m
+[33m Server 2 heartbeat from 1 term 2 [0m
+server 2 is not leader, stop to send heart beats
+[33m Server 2 heartbeat from 1 term 2 [0m
+[33m Server 0 heartbeat from 1 term 2 [0m
+[31m Server 1 sendAppendEntries to 2 failed term 2 [0m
+[33m Server 0 heartbeat from 1 term 2 [0m
+[33m Server 2 heartbeat from 1 term 2 [0m
+[33m Server 2 heartbeat from 1 term 2 [0m
+[33m Server 0 heartbeat from 1 term 2 [0m
+[33m Server 2 heartbeat from 1 term 2 [0m
+[33m Server 0 heartbeat from 1 term 2 [0m
+[31m Server 2 sendAppendEntries to 0 failed term 2 [0m
+[31m Server 2 sendAppendEntries to 1 failed term 2 [0m
+[31m Server 2 sendAppendEntries to 0 failed term 2 [0m
+[31m Server 2 sendAppendEntries to 1 failed term 2 [0m
+[31m Server 2 sendAppendEntries to 1 failed term 2 [0m
+[31m Server 1 sendAppendEntries to 2 failed term 2 [0m
+[31m Server 2 sendAppendEntries to 1 failed term 2 [0m
+[31m Server 2 sendAppendEntries to 0 failed term 2 [0m
+[31m Server 2 sendAppendEntries to 0 failed term 2 [0m
+[31m Server 1 sendAppendEntries to 2 failed term 2 [0m
+[31m Server 1 sendAppendEntries to 0 failed term 2 [0m
+[31m Server 2 sendAppendEntries to 0 failed term 2 [0m
+[31m Server 1 sendAppendEntries to 2 failed term 2 [0m
+[31m Server 2 sendAppendEntries to 0 failed term 2 [0m
+[31m Server 2 sendAppendEntries to 0 failed term 2 [0m
+[31m Server 2 sendAppendEntries to 0 failed term 2 [0m
+[34m Server 2 starts election term 2 [0m
+[31m Server 2 sendAppendEntries to 0 failed term 3 [0m
+[34m Server 0 starts election term 2 [0m
+[31m Server 1 sendAppendEntries to 2 failed term 2 [0m
+[31m Server 1 sendAppendEntries to 0 failed term 2 [0m
+[31m Server 1 sendAppendEntries to 2 failed term 2 [0m
+[31m Server 1 sendAppendEntries to 0 failed term 2 [0m
+[31m Server 2 sendAppendEntries to 1 failed term 3 [0m
+[31m Server 2 sendAppendEntries to 0 failed term 3 [0m
+[31m Server 1 sendAppendEntries to 0 failed term 2 [0m
+[31m Server 2 sendAppendEntries to 1 failed term 3 [0m
+[31m Server 2 sendAppendEntries to 1 failed term 3 [0m
+[31m Server 1 sendAppendEntries to 2 failed term 2 [0m
+[31m Server 2 sendAppendEntries to 0 failed term 3 [0m
+[31m Server 2 sendAppendEntries to 1 failed term 3 [0m
+[31m Server 1 sendAppendEntries to 2 failed term 2 [0m
+[31m Server 1 sendAppendEntries to 2 failed term 2 [0m
+[31m Server 2 sendAppendEntries to 0 failed term 3 [0m
+[31m Server 1 sendAppendEntries to 0 failed term 2 [0m
+[31m Server 1 sendAppendEntries to 2 failed term 2 [0m
