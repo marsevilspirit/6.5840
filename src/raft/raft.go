@@ -62,6 +62,11 @@ const (
 	Leader
 )
 
+const (
+    SendHeartBeatsTime = time.Duration(100) * time.Millisecond
+    CheckCommitTime = time.Duration(10) * time.Millisecond
+)
+
 // A Go object implementing a single Raft peer.
 type Raft struct {
 	mu        sync.Mutex          // Lock to protect shared access to this peer's state
@@ -192,10 +197,11 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 
 	// Your code here (2B).
 
-    isLeader = rf.state == Leader
-
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
+
+    isLeader = rf.state == Leader
+
 	if !isLeader {
 		return index, term, isLeader 
 	}
@@ -250,7 +256,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 
 	rf.heartTime = time.Now()
 
-	if args.Term > rf.currentTerm {
+	if args.Term > rf.currentTerm { 
 		rf.currentTerm = args.Term 
 		rf.votedFor = -1           
 		rf.state = Follower
@@ -259,7 +265,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 	if len(args.Entries) == 0 {
 		DPrintf("server %v 接收到 leader %v 的心跳: %+v\n", rf.me, args.LeaderId, args)
 	} else {
-		DPrintf("server %v 收到 leader %v 的的AppendEntries: %+v \n", rf.me, args.LeaderId, args)
+		DPrintf("server %v 收到 leader %v 的的AppendEntries: %+v\n", rf.me, args.LeaderId, args)
 	}
 
 	if args.PrevLogIndex >= len(rf.log) || rf.log[args.PrevLogIndex].Term != args.PrevLogTerm {
@@ -348,7 +354,7 @@ func (rf *Raft) handleAppendEntries(serverTo int, args *AppendEntriesArgs) {
 	}
 }
 
-func (rf *Raft) SendHeartBeats() {
+func (rf *Raft) SendHeartBeats() { // 有新的日志就发送新的日志，没有就发送心跳
 	DPrintf("leader %v 开始发送心跳\n", rf.me)
 
 	for !rf.killed() {
@@ -369,10 +375,10 @@ func (rf *Raft) SendHeartBeats() {
 				PrevLogTerm:  rf.log[rf.nextIndex[i]-1].Term,
 				LeaderCommit: rf.commitIndex,
 			}
-			if len(rf.log)-1 >= rf.nextIndex[i] {
+            if len(rf.log)-1 >= rf.nextIndex[i] { // 说明有新的日志要copy
 				args.Entries = rf.log[rf.nextIndex[i]:]
-				DPrintf("leader %v 开始向 server %v 广播新的AppendEntries\n", rf.me, i)
-			} else {
+				DPrintf("leader %v 开始向 server %v 广播新的AppendEntries, args = %+v \n", rf.me, i, args)
+			} else { // 没有就发送心跳
 				args.Entries = make([]LogEntry, 0)
 				DPrintf("leader %v 开始向 server %v 广播新的心跳, args = %+v \n", rf.me, i, args)
 			}
@@ -381,7 +387,7 @@ func (rf *Raft) SendHeartBeats() {
 
 		rf.mu.Unlock()
 
-		time.Sleep(time.Duration(100) * time.Millisecond)
+		time.Sleep(SendHeartBeatsTime)
 	}
 }
 
@@ -454,8 +460,7 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	}
 
 	if rf.votedFor == -1 || rf.votedFor == args.CandidateId {
-		if args.LastLogTerm > rf.log[len(rf.log)-1].Term ||
-			(args.LastLogTerm == rf.log[len(rf.log)-1].Term && args.LastLogIndex >= len(rf.log)-1) {
+		if args.LastLogTerm > rf.log[len(rf.log)-1].Term || (args.LastLogTerm == rf.log[len(rf.log)-1].Term && args.LastLogIndex >= len(rf.log)-1) {
 			rf.currentTerm = args.Term
 			reply.Term = rf.currentTerm
 			rf.votedFor = args.CandidateId
@@ -562,11 +567,9 @@ func (rf *Raft) ticker() {
 
 		// Your code here (2A)
 		// Check if a leader election should be started.
-
-
 		rf.mu.Lock()
 		if rf.state != Leader && time.Since(rf.heartTime) > heartTimeOut {
-			// 超时
+			// 超时, 进行选举
 			go rf.startElection()
 		}
 		rf.mu.Unlock()
@@ -592,7 +595,7 @@ func (rf *Raft) CheckCommit() {
 			DPrintf("server %v 准备将命令 %v(索引为 %v ) 应用到状态机\n", rf.me, ApplyCommand.Command, ApplyCommand.CommandIndex)
 		}
 		rf.mu.Unlock()
-		time.Sleep(time.Duration(100) * time.Millisecond)
+		time.Sleep(CheckCommitTime)
 	}
 }
 
@@ -614,7 +617,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 
 	// Your initialization code here (2A, 2B, 2C).
 	rf.log = make([]LogEntry, 0)
-	rf.log = append(rf.log, LogEntry{Term: 0})
+	rf.log = append(rf.log, LogEntry{Term: 0})// 为了方便计算，第一个元素不用, 从1开始
 	rf.nextIndex = make([]int, len(peers))
 	rf.matchIndex = make([]int, len(peers))
 	rf.heartTime = time.Now()

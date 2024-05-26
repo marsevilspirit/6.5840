@@ -34,3 +34,4 @@ done
 echo "Testing completed: $max_tests iterations run."
 echo "Successes: $success_count"
 echo "Failures: $fail_count"
+rm output.log
