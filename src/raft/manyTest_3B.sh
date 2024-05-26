@@ -11,12 +11,12 @@ do
 
     go test -v -run 3B -race &> output.log
 
-    if ["$?" -eq 0]; then
-        success_count=$((success_count + 1))
+    if [ "$?" -eq 0 ]; then
+        success_count=$((success_count+1))
         echo "Test iteration $i passed."
     else
-        fail_count=$((fail_count + 1))
-        mv output.log failure_$i.log
+        fail_count=$((fail_count+1))
+        mv output.log "failure_$i.log"
         echo "Test iteration $i failed, check failure_$i.log for more information."
     fi 
 done
