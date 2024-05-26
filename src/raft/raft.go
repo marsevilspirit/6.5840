@@ -64,7 +64,7 @@ const (
 
 const (
     SendHeartBeatsTime = time.Duration(100) * time.Millisecond
-    CheckCommitTime = time.Duration(10) * time.Millisecond
+    CheckCommitTime = time.Duration(100) * time.Millisecond
 )
 
 // A Go object implementing a single Raft peer.
@@ -238,6 +238,8 @@ type AppendEntriesReply struct {
 }
 
 func (rf *Raft) sendAppendEntries(serverTo int, args *AppendEntriesArgs, reply *AppendEntriesReply) bool {
+    rf.mu.Lock()
+    rf.mu.Unlock()
 	ok := rf.peers[serverTo].Call("Raft.AppendEntries", args, reply)
 	return ok
 }
