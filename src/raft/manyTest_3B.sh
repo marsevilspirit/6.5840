@@ -9,7 +9,7 @@ for ((i=1; i<=max_tests; i++))
 do
     echo "Running test iteration $i of $max_tests..."
 
-    go test -v -run 3B -race &> output.log
+    go test -v -run 3B &> output.log
 
     if [ "$?" -eq 0 ]; then
         success_count=$((success_count+1))

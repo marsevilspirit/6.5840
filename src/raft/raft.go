@@ -18,7 +18,7 @@ package raft
 //
 
 import (
-	//	"bytes"
+	"bytes"
 
 	"math"
 	"math/rand"
@@ -26,7 +26,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	//	"6.5840/labgob"
+	"6.5840/labgob"
 	"6.5840/labrpc"
 )
 
@@ -128,6 +128,13 @@ func (rf *Raft) persist() {
 	// e.Encode(rf.yyy)
 	// raftstate := w.Bytes()
 	// rf.persister.Save(raftstate, nil)
+    w := new(bytes.Buffer)
+    e := labgob.NewEncoder(w)
+    e.Encode(rf.currentTerm)
+    e.Encode(rf.votedFor)
+    e.Encode(rf.log)
+    raftstate := w.Bytes()
+    rf.persister.Save(raftstate, nil)
 }
 
 // restore previously persisted state.
@@ -148,6 +155,20 @@ func (rf *Raft) readPersist(data []byte) {
 	//   rf.xxx = xxx
 	//   rf.yyy = yyy
 	// }
+
+    r := bytes.NewBuffer(data)
+    d := labgob.NewDecoder(r)
+    var currentTerm int
+    var votedFor int
+    var log []LogEntry
+
+    if d.Decode(&currentTerm) != nil || d.Decode(&votedFor) != nil || d.Decode(&log) != nil {
+        DPrintf("server %v 读取持久化数据失败\n", rf.me)
+    } else {
+        rf.currentTerm = currentTerm
+        rf.votedFor = votedFor
+        rf.log = log
+    }
 }
 
 // the service says it has created a snapshot that has
@@ -212,7 +233,10 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
     }
 
 	rf.log = append(rf.log, LogEntry)
-	// go rf.broadCastAppendEntries(newEntry)
+
+    DPrintf("leader %v 开始向log中添加新的命令: %+v\n", rf.me, LogEntry)
+
+    rf.persist()
 
 	return len(rf.log) - 1, rf.currentTerm, true
 }
@@ -235,11 +259,12 @@ type AppendEntriesReply struct {
 	// Your data here (2A).
 	Term    int  // currentTerm, for leader to update itself
 	Success bool // true if follower contained entry matching prevLogIndex and prevLogTerm
+    XTerm   int  
+    XIndex  int  
+    XLen    int
 }
 
 func (rf *Raft) sendAppendEntries(serverTo int, args *AppendEntriesArgs, reply *AppendEntriesReply) bool {
-    rf.mu.Lock()
-    rf.mu.Unlock()
 	ok := rf.peers[serverTo].Call("Raft.AppendEntries", args, reply)
 	return ok
 }
@@ -248,11 +273,12 @@ func (rf *Raft) sendAppendEntries(serverTo int, args *AppendEntriesArgs, reply *
 func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply) {
 	// Your code here (2A, 2B).
 	rf.mu.Lock()
-
+    defer rf.mu.Unlock()
+    
 	if args.Term < rf.currentTerm {
 		reply.Term = rf.currentTerm
-		rf.mu.Unlock()
 		reply.Success = false
+        DPrintf("server %v 收到了旧的leader% v 的心跳函数, args=%+v, 更新的term: %v\n", rf.me, args.LeaderId, args, reply.Term)
 		return
 	}
 
@@ -267,19 +293,36 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 	if len(args.Entries) == 0 {
 		DPrintf("server %v 接收到 leader %v 的心跳: %+v\n", rf.me, args.LeaderId, args)
 	} else {
-		DPrintf("server %v 收到 leader %v 的的AppendEntries: %+v\n", rf.me, args.LeaderId, args)
+		DPrintf("server %v 收到 leader %v 的AppendEntries: %+v\n", rf.me, args.LeaderId, args)
 	}
 
-	if args.PrevLogIndex >= len(rf.log) || rf.log[args.PrevLogIndex].Term != args.PrevLogTerm {
-		reply.Term = rf.currentTerm
-		rf.mu.Unlock()
-		reply.Success = false
-		DPrintf("server %v 检查到心跳中参数不合法:\n\t args.PrevLogIndex=%v, args.PrevLogTerm=%v, \n\tlen(self.log)=%v, self最后一个位置term为:%v\n", rf.me, args.PrevLogIndex, args.PrevLogTerm, len(rf.log), rf.log[len(rf.log)-1].Term)
-		return
-	}
+	reply.Term = rf.currentTerm
 
-	if len(args.Entries) != 0 && len(rf.log) > args.PrevLogIndex+1 && rf.log[args.PrevLogIndex+1].Term != args.Entries[0].Term {
-		DPrintf("server %v 的log与args发生冲突, 进行移除\n", rf.me)
+    isLogOk := true
+
+	if args.PrevLogIndex >= len(rf.log) {
+        reply.XTerm = -1
+        reply.XLen = len(rf.log)
+        isLogOk = false
+        DPrintf("server %v 在PrevLogIndex: %v 处没有log, log长度为 %v",rf.me, args.PrevLogIndex, len(rf.log))
+	} else if rf.log[args.PrevLogIndex].Term != args.PrevLogTerm {
+        reply.XTerm = rf.log[args.PrevLogIndex].Term
+        i := args.PrevLogIndex
+        for rf.log[i].Term == reply.XTerm {
+            i -= 1
+        }
+        reply.XIndex = i + 1 
+        isLogOk = false
+		DPrintf("server %v 的log在PrevLogIndex: %v 位置Term不匹配, args.Term=%v, 实际的term=%v\n", rf.me, args.PrevLogIndex, args.PrevLogTerm, reply.XTerm)    
+    }
+
+    if !isLogOk {
+        reply.Success = false
+        rf.persist()
+        return
+    }
+
+	if len(args.Entries) != 0 && len(rf.log) > args.PrevLogIndex+1 {
 		rf.log = rf.log[:args.PrevLogIndex+1]
 	}
 
@@ -289,12 +332,12 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 	}
 
 	reply.Success = true
-	reply.Term = rf.currentTerm
 
 	if args.LeaderCommit > rf.commitIndex {
 		rf.commitIndex = int(math.Min(float64(args.LeaderCommit), float64(len(rf.log)-1)))
 	}
-	rf.mu.Unlock()
+    
+    rf.persist()
 }
 
 func (rf *Raft) handleAppendEntries(serverTo int, args *AppendEntriesArgs) {
@@ -305,9 +348,9 @@ func (rf *Raft) handleAppendEntries(serverTo int, args *AppendEntriesArgs) {
 	}
 
 	rf.mu.Lock()
+    defer rf.mu.Unlock()
 
 	if args.Term != rf.currentTerm {
-		rf.mu.Unlock()
 		return
 	}
 
@@ -315,9 +358,9 @@ func (rf *Raft) handleAppendEntries(serverTo int, args *AppendEntriesArgs) {
 		rf.matchIndex[serverTo] = args.PrevLogIndex + len(args.Entries)
 		rf.nextIndex[serverTo] = rf.matchIndex[serverTo] + 1
 
-		N := len(rf.log) - 1
+        N := len(rf.log) - 1
 
-		for N > rf.commitIndex {
+        for ; N > rf.commitIndex; N-- {
 			count := 1 
 			for i := 0; i < len(rf.peers); i++ {
 				if i == rf.me {
@@ -328,13 +371,12 @@ func (rf *Raft) handleAppendEntries(serverTo int, args *AppendEntriesArgs) {
 				}
 			}
 			if count > len(rf.peers)/2 {
-				rf.commitIndex = N
 				break
 			}
-			N -= 1
 		}
 
-		rf.mu.Unlock()
+        rf.commitIndex = N
+
 		return
 	}
 
@@ -345,13 +387,28 @@ func (rf *Raft) handleAppendEntries(serverTo int, args *AppendEntriesArgs) {
 		rf.state = Follower
 		rf.votedFor = -1
 		rf.heartTime = time.Now()
-		rf.mu.Unlock()
+        rf.persist()
 		return
 	}
 
 	if reply.Term == rf.currentTerm && rf.state == Leader {
-		rf.nextIndex[serverTo] -= 1
-		rf.mu.Unlock()
+		if reply.XTerm == -1 {
+			DPrintf("leader %v 收到 server %v 的回退请求, 原因是log过短, 回退前的nextIndex[%v]=%v, 回退后的nextIndex[%v]=%v\n", rf.me, serverTo, serverTo, rf.nextIndex[serverTo], serverTo, reply.XLen)
+			rf.nextIndex[serverTo] = reply.XLen
+			return
+		}
+
+		i := rf.nextIndex[serverTo] - 1
+		for i > 0 && rf.log[i].Term > reply.XTerm {
+			i -= 1
+		}
+		if rf.log[i].Term == reply.XTerm {
+			DPrintf("leader %v 收到 server %v 的回退请求, 冲突位置的Term为%v, server的这个Term从索引%v开始, 而leader对应的最后一个XTerm索引为%v, 回退前的nextIndex[%v]=%v, 回退后的nextIndex[%v]=%v\n", rf.me, serverTo, reply.XTerm, reply.XIndex, i, serverTo, rf.nextIndex[serverTo], serverTo, i+1)
+			rf.nextIndex[serverTo] = i + 1
+		} else {
+			DPrintf("leader %v 收到 server %v 的回退请求, 冲突位置的Term为%v, server的这个Term从索引%v开始, 而leader对应的XTerm不存在, 回退前的nextIndex[%v]=%v, 回退后的nextIndex[%v]=%v\n", rf.me, serverTo, reply.XTerm, reply.XIndex, serverTo, rf.nextIndex[serverTo], serverTo, reply.XIndex)
+			rf.nextIndex[serverTo] = reply.XIndex
+		}
 		return
 	}
 }
@@ -459,15 +516,18 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 		rf.votedFor = -1
 		rf.currentTerm = args.Term 
 		rf.state = Follower
+        rf.persist()
 	}
 
 	if rf.votedFor == -1 || rf.votedFor == args.CandidateId {
-		if args.LastLogTerm > rf.log[len(rf.log)-1].Term || (args.LastLogTerm == rf.log[len(rf.log)-1].Term && args.LastLogIndex >= len(rf.log)-1) {
+		if args.LastLogTerm > rf.log[len(rf.log)-1].Term || (args.LastLogTerm == rf.log[len(rf.log)-1].Term && args.LastLogIndex >= len(rf.log)-1) {// 选举限制
 			rf.currentTerm = args.Term
 			reply.Term = rf.currentTerm
 			rf.votedFor = args.CandidateId
 			rf.state = Follower
 			rf.heartTime = time.Now()
+
+            rf.persist()
 
 			rf.mu.Unlock()
 			reply.VoteGranted = true
@@ -502,6 +562,8 @@ func (rf *Raft) GetVoteAnswer(server int, args *RequestVoteArgs) bool {
 		rf.currentTerm = reply.Term
 		rf.votedFor = -1
 		rf.state = Follower
+
+        rf.persist()
 	}
 	return reply.VoteGranted
 }
@@ -546,6 +608,8 @@ func (rf *Raft) startElection() {
 	rf.votedFor = rf.me       
 	rf.voteCount = 1          
 	rf.heartTime = time.Now() 
+
+    rf.persist()
 
 	args := &RequestVoteArgs{
 		Term:         rf.currentTerm,
@@ -625,13 +689,14 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.heartTime = time.Now()
 	rf.state = Follower
 	rf.applyCh = applyCh
-
-	for i := 0; i < len(rf.nextIndex); i++ {
-		rf.nextIndex[i] = 1 
-	}
+    rf.persister = persister
 
 	// initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
+
+	for i := 0; i < len(rf.nextIndex); i++ {
+		rf.nextIndex[i] = len(rf.log) 
+	}
 
 	// start ticker goroutine to start elections
 	go rf.ticker()
