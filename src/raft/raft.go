@@ -94,6 +94,8 @@ type Raft struct {
 	voteCount int
 	muVote    sync.Mutex 
 	applyCh     chan ApplyMsg
+
+    condApply *sync.Cond
 }
 
 // return currentTerm and whether this server
@@ -336,6 +338,8 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 	if args.LeaderCommit > rf.commitIndex {
 		rf.commitIndex = int(math.Min(float64(args.LeaderCommit), float64(len(rf.log)-1)))
 	}
+
+    rf.condApply.Signal()
     
     rf.persist()
 }
@@ -376,6 +380,8 @@ func (rf *Raft) handleAppendEntries(serverTo int, args *AppendEntriesArgs) {
 		}
 
         rf.commitIndex = N
+
+        rf.condApply.Signal()
 
 		return
 	}
@@ -628,7 +634,7 @@ func (rf *Raft) startElection() {
 }
 
 func (rf *Raft) ticker() {
-    heartTimeOut := time.Duration(1500+rand.Intn(500)) * time.Millisecond
+    heartTimeOut := time.Duration(500+rand.Intn(500)) * time.Millisecond
 	for !rf.killed() {
 
 		// Your code here (2A)
@@ -650,6 +656,11 @@ func (rf *Raft) ticker() {
 func (rf *Raft) CheckCommit() {
 	for !rf.killed() {
 		rf.mu.Lock()
+
+        for rf.commitIndex <= rf.lastApplied {
+            rf.condApply.Wait()
+        }
+
 		for rf.commitIndex > rf.lastApplied {
 			rf.lastApplied += 1
 			ApplyCommand := &ApplyMsg{
@@ -661,7 +672,6 @@ func (rf *Raft) CheckCommit() {
 			DPrintf("server %v 准备将命令 %v(索引为 %v ) 应用到状态机\n", rf.me, ApplyCommand.Command, ApplyCommand.CommandIndex)
 		}
 		rf.mu.Unlock()
-		time.Sleep(CheckCommitTime)
 	}
 }
 
@@ -690,6 +700,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.state = Follower
 	rf.applyCh = applyCh
     rf.persister = persister
+    rf.condApply = sync.NewCond(&rf.mu)
 
 	// initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
