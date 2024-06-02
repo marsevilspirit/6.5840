@@ -96,7 +96,6 @@ type Raft struct {
 	heartTime time.Time 
 	voteCount int
 	muVote    sync.Mutex 
-    muSnapshot sync.Mutex
 	applyCh     chan ApplyMsg
 
     condApply *sync.Cond
@@ -214,8 +213,8 @@ func (rf *Raft) allLogIndex(leaveLogIndex int) int {
 // that index. Raft should now trim its log as much as possible.
 func (rf *Raft) Snapshot(index int, snapshot []byte) {
 	// Your code here (2D).
-    rf.muSnapshot.Lock()
-    defer rf.muSnapshot.Unlock()
+    rf.mu.Lock()
+    defer rf.mu.Unlock()
 
     if index <= rf.lastIncludedIndex || index > rf.commitIndex {
         DPrintf("server %v 拒绝了快照的请求，index=%v, commitIndex=%v, lastIncludedIndex=%v\n", rf.me, index, rf.commitIndex, rf.lastIncludedIndex)
@@ -874,22 +873,47 @@ func (rf *Raft) ticker() {
 func (rf *Raft) CheckCommit() {
 	for !rf.killed() {
 		rf.mu.Lock()
-
-        for rf.commitIndex <= rf.lastApplied {
-            rf.condApply.Wait()
-        }
-
-		for rf.commitIndex > rf.lastApplied {
-			rf.lastApplied += 1
-			ApplyCommand := &ApplyMsg{
-				CommandValid: true,
-				Command:      rf.log[rf.leaveLogIndex(rf.lastApplied)].Command,
-				CommandIndex: rf.lastApplied,
+		for rf.commitIndex <= rf.lastApplied {
+			rf.condApply.Wait()
+		}
+		msgBuf := make([]*ApplyMsg, 0, rf.commitIndex-rf.lastApplied)
+		tmpApplied := rf.lastApplied
+		for rf.commitIndex > tmpApplied {
+			tmpApplied += 1
+			if tmpApplied <= rf.lastIncludedIndex {
+				continue
 			}
-			rf.applyCh <- *ApplyCommand
-			DPrintf("server %v 准备将命令 %v(索引为 %v ) 应用到状态机\n", rf.me, ApplyCommand.Command, ApplyCommand.CommandIndex)
+			msg := &ApplyMsg{
+				CommandValid: true,
+				Command:      rf.log[rf.leaveLogIndex(tmpApplied)].Command,
+				CommandIndex: tmpApplied,
+				SnapshotTerm: rf.log[rf.leaveLogIndex(tmpApplied)].Term,
+			}
+
+			msgBuf = append(msgBuf, msg)
 		}
 		rf.mu.Unlock()
+
+		for _, msg := range msgBuf {
+			rf.mu.Lock()
+			if msg.CommandIndex != rf.lastApplied+1 {
+				rf.mu.Unlock()
+				continue
+			}
+			DPrintf("server %v 准备commit, log = %v:%v, lastIncludedIndex=%v", rf.me, msg.CommandIndex, msg.SnapshotTerm, rf.lastIncludedIndex)
+
+			rf.mu.Unlock()
+
+			rf.applyCh <- *msg
+
+			rf.mu.Lock()
+			if msg.CommandIndex != rf.lastApplied+1 {
+				rf.mu.Unlock()
+				continue
+			}
+			rf.lastApplied = msg.CommandIndex
+			rf.mu.Unlock()
+		}
 	}
 }
 
@@ -920,8 +944,8 @@ func Make(peers []*labrpc.ClientEnd, me int,
     rf.condApply = sync.NewCond(&rf.mu)
 
 	// initialize from state persisted before a crash
-	rf.readPersist(persister.ReadRaftState())
     rf.readSnapshot(persister.ReadSnapshot())
+	rf.readPersist(persister.ReadRaftState())
 
     /*
 	for i := 0; i < len(rf.nextIndex); i++ {
