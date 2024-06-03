@@ -6,4 +6,4 @@
 
 2024/5/12 - 2024/5/14 lab 2 finished
 
-2025/5/15 - 2024/6/13 lab 3 finished
+2025/5/15 - 2024/6/3 lab 3 finished
