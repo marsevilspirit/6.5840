@@ -7,9 +7,11 @@ import (
 	"log"
 	"sync"
 	"sync/atomic"
+    "time"
 )
 
 const Debug = false
+const TimeoutInterval = time.Second * 2
 
 func DPrintf(format string, a ...interface{}) (n int, err error) {
 	if Debug {
@@ -23,6 +25,10 @@ type Op struct {
 	// Your definitions here.
 	// Field names must start with capital letters,
 	// otherwise RPC will break.
+    Operation string // "Put", "Append" 或 "Get"
+    Key       string
+    Value     string
+    Task_Id   uint32
 }
 
 type KVServer struct {
@@ -35,19 +41,145 @@ type KVServer struct {
 	maxraftstate int // snapshot if log grows this big
 
 	// Your definitions here.
+    kv map[string]string
+    requestIDs sync.Map
+    resultChans map[int]chan PutAppendReply
 }
 
 
 func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 	// Your code here.
+    kv.mu.Lock()
+    defer kv.mu.Unlock()
+
+    _, isLeader := kv.rf.GetState()
+    if !isLeader {
+        reply.Err = ErrWrongLeader
+        return
+    }
+
+    reply.Value = kv.kv[args.Key]
+    if reply.Value == "" {
+        reply.Err = ErrNoKey
+    } else {
+        reply.Err = OK
+    }
+    
+    DPrintf("Get Key(%s): Value(%s)", args.Key, reply.Value)
 }
 
 func (kv *KVServer) Put(args *PutAppendArgs, reply *PutAppendReply) {
 	// Your code here.
+    kv.mu.Lock()
+
+    DPrintf("Put")
+
+    if args.Mode == Mode_Report {
+        kv.requestIDs.Delete(args.Task_Id)
+        reply.Err = OK
+        kv.mu.Unlock()
+        return
+    } 
+
+    _, ok := kv.requestIDs.Load(args.Task_Id)
+    if ok {
+        reply.Err = ErrSameCommand
+        DPrintf("ErrSameCommand")
+        kv.mu.Unlock()
+        return
+    }
+
+    op := Op{
+        Operation: "Put",
+        Key:       args.Key,
+        Value:     args.Value,
+        Task_Id:   args.Task_Id,
+    }
+
+    index, _, isLeader := kv.rf.Start(op)
+    if !isLeader {
+        reply.Err = ErrWrongLeader
+        kv.mu.Unlock()
+        return
+    } 
+
+    // 创建一个通道并将其存储在 resultChans 中
+    ch := make(chan PutAppendReply, 1)
+    kv.resultChans[index] = ch
+    kv.requestIDs.Store(args.Task_Id, kv.kv[args.Key])
+
+    kv.mu.Unlock()
+
+    select {
+    case res := <-ch:
+        if res.Err == OK {
+            reply.Err = OK
+        } else {
+            reply.Err = res.Err
+        }
+    case <-time.After(TimeoutInterval):
+        reply.Err = ErrTimeout
+    }
+
+    kv.mu.Lock()
+    delete(kv.resultChans, index)
+    kv.mu.Unlock()
 }
 
 func (kv *KVServer) Append(args *PutAppendArgs, reply *PutAppendReply) {
 	// Your code here.
+    kv.mu.Lock()
+
+    if args.Mode == Mode_Report {
+        kv.requestIDs.Delete(args.Task_Id)
+        reply.Err = OK
+        kv.mu.Unlock()
+        return
+    }
+
+    _, ok := kv.requestIDs.Load(args.Task_Id)
+    if ok {
+         reply.Err = ErrSameCommand
+         kv.mu.Unlock()
+         return
+    }
+
+    op := Op{
+        Operation: "Append",
+        Key:       args.Key,
+        Value:     args.Value,
+        Task_Id:   args.Task_Id,
+    }
+
+    index, _, isLeader := kv.rf.Start(op)
+    if !isLeader {
+        reply.Err = ErrWrongLeader
+        kv.mu.Unlock()
+        return
+    } 
+
+    // 创建一个通道并将其存储在 resultChans 中
+    ch := make(chan PutAppendReply, 1)
+    kv.resultChans[index] = ch
+    kv.requestIDs.Store(args.Task_Id, kv.kv[args.Key])
+
+    kv.mu.Unlock()
+
+
+    select {
+    case res := <-ch:
+        if res.Err == OK {
+            reply.Err = OK
+        } else {
+            reply.Err = res.Err
+        }
+    case <-time.After(TimeoutInterval):
+        reply.Err = ErrTimeout
+    }
+
+    kv.mu.Lock()
+    delete(kv.resultChans, index)
+    kv.mu.Unlock()
 }
 
 // the tester calls Kill() when a KVServer instance won't
@@ -97,5 +229,52 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 
 	// You may need initialization code here.
 
+    kv.kv = make(map[string]string)
+    kv.requestIDs = sync.Map{}
+    kv.resultChans = make(map[int]chan PutAppendReply)
+
+    go kv.applier()
+
+    go func() {
+        for {
+            DPrintf("server %d map %v", kv.me, kv.kv)
+            time.Sleep(1 * time.Second)
+        }
+    }()
+
 	return kv
+}
+
+func (kv *KVServer) applier() {
+    for {
+        select {
+        case msg := <-kv.applyCh:
+            DPrintf("server %d 将命令应用到状态机: %v", kv.me, msg)
+            if msg.CommandValid {
+                kv.mu.Lock()
+                op := msg.Command.(Op)
+                
+                if op.Operation == "Put" {
+                    DPrintf("Put Key(%s): Value(%s)", op.Key, op.Value)
+                    kv.kv[op.Key] = op.Value
+                } else if op.Operation == "Append" {
+                    DPrintf("Append Key(%s): Value(%s)", op.Key, op.Value)
+                    old := kv.kv[op.Key]
+                    if old == "" {
+                        kv.kv[op.Key] = op.Value
+                    } else {
+                        kv.kv[op.Key] = old + op.Value
+                    }
+                }
+
+                // 检查是否有等待该命令结果的通道
+                if ch, ok := kv.resultChans[msg.CommandIndex]; ok {
+                    ch <- PutAppendReply{Err: OK}
+                    delete(kv.resultChans, msg.CommandIndex)
+                }
+
+                kv.mu.Unlock()
+            }
+        }
+    }
 }
