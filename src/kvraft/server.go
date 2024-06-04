@@ -10,7 +10,7 @@ import (
     "time"
 )
 
-const Debug = false
+const Debug = true
 const TimeoutInterval = 500 * time.Millisecond
 
 func DPrintf(format string, a ...interface{}) (n int, err error) {
