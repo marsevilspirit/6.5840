@@ -11,7 +11,7 @@ import (
 )
 
 const Debug = false
-const TimeoutInterval = time.Second * 2
+const TimeoutInterval = 500 * time.Millisecond
 
 func DPrintf(format string, a ...interface{}) (n int, err error) {
 	if Debug {
@@ -46,7 +46,6 @@ type KVServer struct {
     resultChans map[int]chan PutAppendReply
 }
 
-
 func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 	// Your code here.
     kv.mu.Lock()
@@ -71,9 +70,6 @@ func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 func (kv *KVServer) Put(args *PutAppendArgs, reply *PutAppendReply) {
 	// Your code here.
     kv.mu.Lock()
-
-    DPrintf("Put")
-
     if args.Mode == Mode_Report {
         kv.requestIDs.Delete(args.Task_Id)
         reply.Err = OK
@@ -84,7 +80,6 @@ func (kv *KVServer) Put(args *PutAppendArgs, reply *PutAppendReply) {
     _, ok := kv.requestIDs.Load(args.Task_Id)
     if ok {
         reply.Err = ErrSameCommand
-        DPrintf("ErrSameCommand")
         kv.mu.Unlock()
         return
     }
@@ -119,6 +114,7 @@ func (kv *KVServer) Put(args *PutAppendArgs, reply *PutAppendReply) {
         }
     case <-time.After(TimeoutInterval):
         reply.Err = ErrTimeout
+        DPrintf("server %d Put 超时", kv.me)
     }
 
     kv.mu.Lock()
@@ -175,11 +171,13 @@ func (kv *KVServer) Append(args *PutAppendArgs, reply *PutAppendReply) {
         }
     case <-time.After(TimeoutInterval):
         reply.Err = ErrTimeout
+        DPrintf("server %d Append 超时", kv.me)
     }
 
     kv.mu.Lock()
     delete(kv.resultChans, index)
     kv.mu.Unlock()
+
 }
 
 // the tester calls Kill() when a KVServer instance won't
@@ -235,12 +233,14 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 
     go kv.applier()
 
+    /*
     go func() {
         for {
             DPrintf("server %d map %v", kv.me, kv.kv)
             time.Sleep(1 * time.Second)
         }
     }()
+    */
 
 	return kv
 }
@@ -249,16 +249,15 @@ func (kv *KVServer) applier() {
     for {
         select {
         case msg := <-kv.applyCh:
-            DPrintf("server %d 将命令应用到状态机: %v", kv.me, msg)
             if msg.CommandValid {
                 kv.mu.Lock()
                 op := msg.Command.(Op)
                 
                 if op.Operation == "Put" {
-                    DPrintf("Put Key(%s): Value(%s)", op.Key, op.Value)
+                    DPrintf("server %d Put Key(%s): Value(%s)", kv.me, op.Key, op.Value)
                     kv.kv[op.Key] = op.Value
                 } else if op.Operation == "Append" {
-                    DPrintf("Append Key(%s): Value(%s)", op.Key, op.Value)
+                    DPrintf("server %d Append Key(%s): Value(%s)", kv.me, op.Key, op.Value)
                     old := kv.kv[op.Key]
                     if old == "" {
                         kv.kv[op.Key] = op.Value

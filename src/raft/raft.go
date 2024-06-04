@@ -63,12 +63,13 @@ const (
 )
 
 const (
-    SendHeartBeatsTime = time.Duration(100) * time.Millisecond
+    SendHeartBeatsTime = 100
 )
 
 // A Go object implementing a single Raft peer.
 type Raft struct {
 	mu        sync.Mutex          // Lock to protect shared access to this peer's state
+    permu     sync.Mutex
 	peers     []*labrpc.ClientEnd // RPC end points of all peers
 	persister *Persister          // Object to hold this peer's persisted state
 	me        int                 // this peer's index into peers[]
@@ -93,13 +94,28 @@ type Raft struct {
 	lastApplied int
 
 	state      int
-	heartTime time.Time 
+    voteTimer  *time.Timer
+    heartTimer *time.Timer
+    rd         *rand.Rand
 	voteCount int
 	muVote    sync.Mutex 
 	applyCh     chan ApplyMsg
 
     condApply *sync.Cond
 
+}
+
+func GetRandomElectTimeOut(rd *rand.Rand) int {
+    return int(rd.Float64() * 150) + 450
+}
+
+func (rf *Raft) ResetVoteTimer() {
+    rdTimeOut := GetRandomElectTimeOut(rf.rd)
+    rf.voteTimer.Reset(time.Duration(rdTimeOut) * time.Millisecond)
+}
+
+func (rf *Raft) ResetHeartTimer(timeStamp int) {
+    rf.heartTimer.Reset(time.Duration(timeStamp) * time.Millisecond)
 }
 
 // return currentTerm and whether this server
@@ -134,6 +150,9 @@ func (rf *Raft) persist() {
 	// e.Encode(rf.yyy)
 	// raftstate := w.Bytes()
 	// rf.persister.Save(raftstate, nil)
+    rf.permu.Lock()//不加会出现竞争
+    defer rf.permu.Unlock()
+
     w := new(bytes.Buffer)
     e := labgob.NewEncoder(w)
     e.Encode(rf.currentTerm)
@@ -176,7 +195,7 @@ func (rf *Raft) readPersist(data []byte) {
     var lastIncludedTerm int
 
     if d.Decode(&currentTerm) != nil || d.Decode(&votedFor) != nil || d.Decode(&log) != nil || d.Decode(&lastIncludedIndex) != nil || d.Decode(&lastIncludedTerm) != nil{
-        DPrintf("server %v 读取持久化数据失败\n", rf.me)
+        //DPrintf("server %v 读取持久化数据失败\n", rf.me)
     } else {
         rf.currentTerm = currentTerm
         rf.votedFor = votedFor
@@ -186,7 +205,7 @@ func (rf *Raft) readPersist(data []byte) {
 
         rf.commitIndex = rf.lastIncludedIndex
         rf.lastApplied = rf.lastIncludedIndex
-        DPrintf("server %v 读取持久化数据成功, currentTerm=%v, votedFor=%v, log=%v, lastIncludedIndex=%v, lastIncludedTerm=%v\n", rf.me, currentTerm, votedFor, log, lastIncludedIndex, lastIncludedTerm)
+        //DPrintf("server %v 读取持久化数据成功, currentTerm=%v, votedFor=%v, log=%v, lastIncludedIndex=%v, lastIncludedTerm=%v\n", rf.me, currentTerm, votedFor, log, lastIncludedIndex, lastIncludedTerm)
     }
 }
 
@@ -196,7 +215,7 @@ func (rf *Raft) readSnapshot(data []byte) {
 	}
     
     rf.snapshot = data
-    DPrintf("server %v 读取快照成功\n", rf.me)
+    //DPrintf("server %v 读取快照成功\n", rf.me)
 }
 
 func (rf *Raft) leaveLogIndex(allLogIndex int) int {
@@ -217,11 +236,11 @@ func (rf *Raft) Snapshot(index int, snapshot []byte) {
     defer rf.mu.Unlock()
 
     if index <= rf.lastIncludedIndex || index > rf.commitIndex {
-        DPrintf("server %v 拒绝了快照的请求，index=%v, commitIndex=%v, lastIncludedIndex=%v\n", rf.me, index, rf.commitIndex, rf.lastIncludedIndex)
+        //DPrintf("server %v 拒绝了快照的请求，index=%v, commitIndex=%v, lastIncludedIndex=%v\n", rf.me, index, rf.commitIndex, rf.lastIncludedIndex)
         return
     }
 
-    DPrintf("server %v 同意了快照的请求, index=%v, commitIndex=%v, lastIncludedIndex=%v\n", rf.me, index, rf.commitIndex, rf.lastIncludedIndex)
+    //DPrintf("server %v 同意了快照的请求, index=%v, commitIndex=%v, lastIncludedIndex=%v\n", rf.me, index, rf.commitIndex, rf.lastIncludedIndex)
 
     rf.snapshot = snapshot
 
@@ -260,7 +279,7 @@ func (rf *Raft) InstallSnapshot(args *InstallSnapshotArgs, reply *InstallSnapsho
         return
     }
 
-    rf.heartTime = time.Now()
+    rf.ResetVoteTimer()
 
     if args.Term > rf.currentTerm {
         rf.currentTerm = args.Term
@@ -279,7 +298,7 @@ func (rf *Raft) InstallSnapshot(args *InstallSnapshotArgs, reply *InstallSnapsho
     }
 
     if haveSameEntry {
-        DPrintf("sever %v 存在sameEntry", rf.me)
+        //DPrintf("sever %v 存在sameEntry", rf.me)
         rf.log = rf.log[sameIndex:]
     } else {
         rf.log = make([]LogEntry, 1)
@@ -318,7 +337,7 @@ func (rf *Raft) InstallSnapshot(args *InstallSnapshotArgs, reply *InstallSnapsho
 
     rf.persist() //-------------------------------------------------持久化储存点
 
-    DPrintf("server %v 安装快照成功, lastIncludedIndex=%v, lastIncludedTerm=%v, commitIndex=%v, lastApplied=%v\n", rf.me, rf.lastIncludedIndex, rf.lastIncludedTerm, rf.commitIndex, rf.lastApplied)
+    //DPrintf("server %v 安装快照成功, lastIncludedIndex=%v, lastIncludedTerm=%v, commitIndex=%v, lastApplied=%v\n", rf.me, rf.lastIncludedIndex, rf.lastIncludedTerm, rf.commitIndex, rf.lastApplied)
 }
 
 func (rf *Raft) sendInstallSnapshot(serverTo int, args *InstallSnapshotArgs, reply *InstallSnapshotReply) bool {
@@ -358,7 +377,7 @@ func (rf *Raft) handleInstallSnapshot(serverTo int) {
         rf.currentTerm = reply.Term
         rf.votedFor = -1
         rf.state = Follower
-        rf.heartTime = time.Now()
+        rf.ResetVoteTimer()
         rf.persist() //-------------------------------------------------持久化储存点
         return
     }
@@ -413,9 +432,11 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 
 	rf.log = append(rf.log, LogEntry)
 
-    DPrintf("leader %v 开始向log中添加新的命令: %+v\n", rf.me, LogEntry)
+    //DPrintf("leader %v 开始向log中添加新的命令: %+v\n", rf.me, LogEntry)
 
     rf.persist()
+
+    defer rf.ResetHeartTimer(1)
 
 	return rf.allLogIndex(len(rf.log) - 1), rf.currentTerm, true
 }
@@ -457,11 +478,11 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 	if args.Term < rf.currentTerm {
 		reply.Term = rf.currentTerm
 		reply.Success = false
-        DPrintf("server %v 收到了旧的leader% v 的心跳函数, args=%+v, 更新的term: %v\n", rf.me, args.LeaderId, args, reply.Term)
+        //DPrintf("server %v 收到了旧的leader% v 的心跳函数, args=%+v, 更新的term: %v\n", rf.me, args.LeaderId, args, reply.Term)
 		return
 	}
 
-	rf.heartTime = time.Now()
+    rf.ResetVoteTimer()
 
 	if args.Term > rf.currentTerm { 
 		rf.currentTerm = args.Term 
@@ -469,11 +490,13 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 		rf.state = Follower
 	}
 
+    /*
 	if len(args.Entries) == 0 {
-		DPrintf("server %v 接收到 leader %v 的心跳: %+v\n", rf.me, args.LeaderId, args)
+		//DPrintf("server %v 接收到 leader %v 的心跳: %+v\n", rf.me, args.LeaderId, args)
 	} else {
-		DPrintf("server %v 收到 leader %v 的AppendEntries: %+v\n", rf.me, args.LeaderId, args)
+		//DPrintf("server %v 收到 leader %v 的AppendEntries: %+v\n", rf.me, args.LeaderId, args)
 	}
+    */
 
 	reply.Term = rf.currentTerm
 
@@ -483,7 +506,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
         reply.XTerm = -1
         reply.XLen = rf.allLogIndex(len(rf.log))
         isLogOk = false
-        DPrintf("server %v 在PrevLogIndex: %v 处没有log, all log长度为 %v",rf.me, args.PrevLogIndex, rf.allLogIndex(len(rf.log)))
+        //DPrintf("server %v 在PrevLogIndex: %v 处没有log, all log长度为 %v",rf.me, args.PrevLogIndex, rf.allLogIndex(len(rf.log)))
 	} else if rf.log[rf.leaveLogIndex(args.PrevLogIndex)].Term != args.PrevLogTerm {
         reply.XTerm = rf.log[rf.leaveLogIndex(args.PrevLogIndex)].Term
         i := args.PrevLogIndex
@@ -492,7 +515,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
         }
         reply.XIndex = i + 1 
         isLogOk = false
-		DPrintf("server %v 的log在PrevLogIndex: %v 位置Term不匹配, args.Term=%v, 实际的term=%v\n", rf.me, args.PrevLogIndex, args.PrevLogTerm, reply.XTerm)    
+		//DPrintf("server %v 的log在PrevLogIndex: %v 位置Term不匹配, args.Term=%v, 实际的term=%v\n", rf.me, args.PrevLogIndex, args.PrevLogTerm, reply.XTerm)    
     }
 
     if !isLogOk {
@@ -508,17 +531,13 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 	rf.log = append(rf.log, args.Entries...)
     rf.persist() //-------------------------------------------------持久化储存点
 
-	if len(args.Entries) != 0 {
-		DPrintf("server %v 成功进行append\n", rf.me)
-	}
-
-	reply.Success = true
-
     /*
-	if args.LeaderCommit > rf.commitIndex {
-		rf.commitIndex = int(math.Min(float64(args.LeaderCommit), float64(len(rf.log)-1)))
+	if len(args.Entries) != 0 {
+		//DPrintf("server %v 成功进行append\n", rf.me)
 	}
     */
+
+	reply.Success = true
 
     if args.LeaderCommit > rf.commitIndex {
         if args.LeaderCommit < rf.allLogIndex(len(rf.log) - 1) {
@@ -574,19 +593,19 @@ func (rf *Raft) handleAppendEntries(serverTo int, args *AppendEntriesArgs) {
 	}
 
 	if reply.Term > rf.currentTerm {
-		DPrintf("server %v 旧的leader收到了来自 server %v 的心跳函数中更新的term: %v, 转化为Follower\n", rf.me, serverTo, reply.Term)
+		//DPrintf("server %v 旧的leader收到了来自 server %v 的心跳函数中更新的term: %v, 转化为Follower\n", rf.me, serverTo, reply.Term)
 
 		rf.currentTerm = reply.Term
 		rf.state = Follower
 		rf.votedFor = -1
-		rf.heartTime = time.Now()
+        rf.ResetVoteTimer()
         rf.persist() //-------------------------------------------------持久化储存点
 		return
 	}
 
 	if reply.Term == rf.currentTerm && rf.state == Leader {
 		if reply.XTerm == -1 {
-			DPrintf("leader %v 收到 server %v 的回退请求, 原因是log过短, 回退前的nextIndex[%v]=%v, 回退后的nextIndex[%v]=%v\n", rf.me, serverTo, serverTo, rf.nextIndex[serverTo], serverTo, reply.XLen)
+			//DPrintf("leader %v 收到 server %v 的回退请求, 原因是log过短, 回退前的nextIndex[%v]=%v, 回退后的nextIndex[%v]=%v\n", rf.me, serverTo, serverTo, rf.nextIndex[serverTo], serverTo, reply.XLen)
 
             if rf.lastIncludedIndex >= reply.XLen {
                 go rf.handleInstallSnapshot(serverTo)
@@ -607,10 +626,10 @@ func (rf *Raft) handleAppendEntries(serverTo int, args *AppendEntriesArgs) {
         if i == rf.lastIncludedIndex && rf.log[rf.leaveLogIndex(i)].Term > reply.XTerm {
             go rf.handleInstallSnapshot(serverTo)
         } else if rf.log[rf.leaveLogIndex(i)].Term == reply.XTerm {
-			DPrintf("leader %v 收到 server %v 的回退请求, 冲突位置的Term为%v, server的这个Term从索引%v开始, 而leader对应的最后一个XTerm索引为%v, 回退前的nextIndex[%v]=%v, 回退后的nextIndex[%v]=%v\n", rf.me, serverTo, reply.XTerm, reply.XIndex, i, serverTo, rf.nextIndex[serverTo], serverTo, i+1)
+			//DPrintf("leader %v 收到 server %v 的回退请求, 冲突位置的Term为%v, server的这个Term从索引%v开始, 而leader对应的最后一个XTerm索引为%v, 回退前的nextIndex[%v]=%v, 回退后的nextIndex[%v]=%v\n", rf.me, serverTo, reply.XTerm, reply.XIndex, i, serverTo, rf.nextIndex[serverTo], serverTo, i+1)
 			rf.nextIndex[serverTo] = i + 1
 		} else {
-			DPrintf("leader %v 收到 server %v 的回退请求, 冲突位置的Term为%v, server的这个Term从索引%v开始, 而leader对应的XTerm不存在, 回退前的nextIndex[%v]=%v, 回退后的nextIndex[%v]=%v\n", rf.me, serverTo, reply.XTerm, reply.XIndex, serverTo, rf.nextIndex[serverTo], serverTo, reply.XIndex)
+			//DPrintf("leader %v 收到 server %v 的回退请求, 冲突位置的Term为%v, server的这个Term从索引%v开始, 而leader对应的XTerm不存在, 回退前的nextIndex[%v]=%v, 回退后的nextIndex[%v]=%v\n", rf.me, serverTo, reply.XTerm, reply.XIndex, serverTo, rf.nextIndex[serverTo], serverTo, reply.XIndex)
             if rf.lastIncludedIndex >= reply.XIndex {
                 go rf.handleInstallSnapshot(serverTo)
             } else {
@@ -622,9 +641,12 @@ func (rf *Raft) handleAppendEntries(serverTo int, args *AppendEntriesArgs) {
 }
 
 func (rf *Raft) SendHeartBeats() { // 有新的日志就发送新的日志，没有就发送心跳
-	DPrintf("leader %v 开始发送心跳\n", rf.me)
+	//DPrintf("leader %v 开始发送心跳\n", rf.me)
 
 	for !rf.killed() {
+
+        <- rf.heartTimer.C
+
 		rf.mu.Lock()
 		if rf.state != Leader {
 			rf.mu.Unlock()
@@ -646,13 +668,13 @@ func (rf *Raft) SendHeartBeats() { // 有新的日志就发送新的日志，没
 
             if args.PrevLogIndex < rf.lastIncludedIndex {
                 sendInstallSnapshot = true
-                DPrintf("server %v 太过落后以至于被截断, 准备发送InstallSnapshot RPC", i)
+                //DPrintf("server %v 太过落后以至于被截断, 准备发送InstallSnapshot RPC", i)
             } else if rf.allLogIndex(len(rf.log)-1) > args.PrevLogIndex {
                 args.Entries = rf.log[rf.leaveLogIndex(rf.nextIndex[i]):]
-                DPrintf("leader %v 开始向 server %v 广播新的AppendEntries, args = %+v \n", rf.me, i, args)
+                //DPrintf("leader %v 开始向 server %v 广播新的AppendEntries, args = %+v \n", rf.me, i, args)
             } else {
                 args.Entries = make([]LogEntry, 0)
-                DPrintf("leader %v 开始向 server %v 广播新的心跳, args = %+v \n", rf.me, i, args)
+                //DPrintf("leader %v 开始向 server %v 广播新的心跳, args = %+v \n", rf.me, i, args)
             }
 
             if sendInstallSnapshot {
@@ -666,7 +688,7 @@ func (rf *Raft) SendHeartBeats() { // 有新的日志就发送新的日志，没
 
 		rf.mu.Unlock()
 
-		time.Sleep(SendHeartBeatsTime)
+        rf.ResetHeartTimer(SendHeartBeatsTime)
 	}
 }
 
@@ -727,7 +749,7 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 		reply.Term = rf.currentTerm
 		rf.mu.Unlock()
 		reply.VoteGranted = false
-		DPrintf("server %v 拒绝向 server %v投票: 旧的term: %v, args = %+v\n", rf.me, args.CandidateId, args.Term, args)
+		//DPrintf("server %v 拒绝向 server %v投票: 旧的term: %v, args = %+v\n", rf.me, args.CandidateId, args.Term, args)
 		return
 	}
 
@@ -745,17 +767,17 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 			reply.Term = rf.currentTerm
 			rf.votedFor = args.CandidateId
 			rf.state = Follower
-			rf.heartTime = time.Now()
+            rf.ResetVoteTimer()
 
             rf.persist()
 
 			rf.mu.Unlock()
 			reply.VoteGranted = true
-			DPrintf("server %v 同意向 server %v投票, args = %+v\n", rf.me, args.CandidateId, args)
+			//DPrintf("server %v 同意向 server %v投票, args = %+v\n", rf.me, args.CandidateId, args)
 			return
 		}
 	} else {
-		DPrintf("server %v 拒绝向 server %v投票: 已投票, args = %+v\n", rf.me, args.CandidateId, args)
+		//DPrintf("server %v 拒绝向 server %v投票: 已投票, args = %+v\n", rf.me, args.CandidateId, args)
 	}
 
 	reply.Term = rf.currentTerm
@@ -829,7 +851,7 @@ func (rf *Raft) startElection() {
 	rf.state = Candidate      
 	rf.votedFor = rf.me       
 	rf.voteCount = 1          
-	rf.heartTime = time.Now()
+    rf.ResetVoteTimer()
 
 	args := &RequestVoteArgs{
 		Term:         rf.currentTerm,
@@ -851,22 +873,24 @@ func (rf *Raft) startElection() {
 }
 
 func (rf *Raft) ticker() {
-    heartTimeOut := time.Duration(500+rand.Intn(500)) * time.Millisecond
 	for !rf.killed() {
 
 		// Your code here (2A)
 		// Check if a leader election should be started.
+
+        <-rf.voteTimer.C
+
 		rf.mu.Lock()
-		if rf.state != Leader && time.Since(rf.heartTime) > heartTimeOut {
+		if rf.state != Leader {
 			// 超时, 进行选举
 			go rf.startElection()
 		}
+        rf.ResetVoteTimer()
 		rf.mu.Unlock()
-
 		// pause for a random amount of time between 50 and 350
 		// milliseconds.
-        ms := 50 + (rand.Int63() % 300)
-        time.Sleep(time.Duration(ms) * time.Millisecond)
+        //ms := 50 + (rand.Int63() % 300)
+        //time.Sleep(time.Duration(ms) * time.Millisecond)
 	}
 }
 
@@ -900,7 +924,7 @@ func (rf *Raft) CheckCommit() {
 				rf.mu.Unlock()
 				continue
 			}
-			DPrintf("server %v 准备commit, log = %v:%v, lastIncludedIndex=%v", rf.me, msg.CommandIndex, msg.SnapshotTerm, rf.lastIncludedIndex)
+			//DPrintf("server %v 准备commit, log = %v:%v, lastIncludedIndex=%v", rf.me, msg.CommandIndex, msg.SnapshotTerm, rf.lastIncludedIndex)
 
 			rf.mu.Unlock()
 
@@ -938,7 +962,9 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.log = append(rf.log, LogEntry{Term: 0})// 为了方便计算，第一个元素不用, 从1开始
 	rf.nextIndex = make([]int, len(peers))
 	rf.matchIndex = make([]int, len(peers))
-	rf.heartTime = time.Now()
+    rf.rd = rand.New(rand.NewSource(int64(rf.me)))
+    rf.voteTimer = time.NewTimer(0)
+    rf.heartTimer = time.NewTimer(0)
 	rf.state = Follower
 	rf.applyCh = applyCh
     rf.condApply = sync.NewCond(&rf.mu)

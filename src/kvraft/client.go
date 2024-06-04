@@ -12,6 +12,7 @@ import (
 type Clerk struct {
 	servers []*labrpc.ClientEnd
 	// You will have to modify this struct.
+    leaderId int
 
 }
 
@@ -26,6 +27,8 @@ func MakeClerk(servers []*labrpc.ClientEnd) *Clerk {
 	ck := new(Clerk)
 	ck.servers = servers
 	// You'll have to add code here.
+    ck.leaderId = -1
+
 	return ck
 }
 
@@ -80,23 +83,40 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
         Task_Id:        id.ID(),
         Mode:           Mode_Modify,
     }
+        
+    var serverTo int
 
     for i := 0; ; i = (i + 1) % len(ck.servers) {
         put_append_reply := PutAppendReply{}
 
-        ok := ck.servers[i].Call("KVServer."+op, &put_append_args, &put_append_reply)
+        if ck.leaderId != -1 {
+            serverTo = ck.leaderId
+        } else {
+            serverTo = i
+        }
+
+        ok := ck.servers[serverTo].Call("KVServer."+op, &put_append_args, &put_append_reply)
+
+        DPrintf("serverTo: %d, ok: %v, put_append_reply.Err: %s", serverTo, ok, put_append_reply.Err)
 
         if ok && put_append_reply.Err == OK {
+            ck.leaderId = serverTo
             break
         }
 
-        if (ok && (put_append_reply.Err == ErrWrongLeader || put_append_reply.Err == ErrSameCommand)) || !ok {
-             continue
+        if ok && (put_append_reply.Err == ErrWrongLeader || put_append_reply.Err == ErrSameCommand) {
+            if put_append_reply.Err == ErrWrongLeader {
+                ck.leaderId = -1 // 确定当前服务器不是leader时才重置leaderId
+            } else {
+                ck.leaderId = serverTo // 确认leader
+            }
+            continue
         }
 
-      	if put_append_reply.Err == OK {
-			break
-		}
+        if !ok {
+            ck.leaderId = -1
+            continue
+        }
     }
 
 	req := PutAppendArgs{
@@ -107,17 +127,22 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
     for i := 0; ; i = (i + 1) % len(ck.servers) {
 	    rsp := PutAppendReply{}
 
-        ok := ck.servers[i].Call("KVServer."+op, &req, &rsp)
+        if ck.leaderId != -1 {
+            serverTo = ck.leaderId
+        } else {
+            serverTo = i
+        }
+
+        ok := ck.servers[serverTo].Call("KVServer."+op, &req, &rsp)
+
         if ok && rsp.Err == OK {
+            ck.leaderId = serverTo
             break
         }
 
         if (ok && rsp.Err == ErrWrongLeader) || !ok {
+            ck.leaderId = -1
             continue
-        }
-
-        if rsp.Err == OK {
-            break
         }
     }
 }
