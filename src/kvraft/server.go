@@ -10,7 +10,7 @@ import (
     "time"
 )
 
-const Debug = true
+const Debug = false
 const TimeoutInterval = 500 * time.Millisecond
 
 func DPrintf(format string, a ...interface{}) (n int, err error) {
@@ -41,7 +41,7 @@ type KVServer struct {
 	maxraftstate int // snapshot if log grows this big
 
 	// Your definitions here.
-    kv map[string]string
+    db map[string]string
     requestIDs sync.Map
     resultChans map[int]chan PutAppendReply
 }
@@ -51,13 +51,21 @@ func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
     kv.mu.Lock()
     defer kv.mu.Unlock()
 
-    _, isLeader := kv.rf.GetState()
+    curTerm, isLeader := kv.rf.GetState()
     if !isLeader {
         reply.Err = ErrWrongLeader
         return
     }
 
-    reply.Value = kv.kv[args.Key]
+    DPrintf("server %d curTerm %d, args.Term %d", kv.me, curTerm, args.Term)
+
+    if args.Term < curTerm {
+        reply.Err = ErrTerm
+        reply.Term = curTerm
+        return
+    } 
+
+    reply.Value = kv.db[args.Key]
     if reply.Value == "" {
         reply.Err = ErrNoKey
     } else {
@@ -71,7 +79,7 @@ func (kv *KVServer) Put(args *PutAppendArgs, reply *PutAppendReply) {
 	// Your code here.
     kv.mu.Lock()
     if args.Mode == Mode_Report {
-        kv.requestIDs.Delete(args.Task_Id)
+        kv.OpReport(int(args.Task_Id))
         reply.Err = OK
         kv.mu.Unlock()
         return
@@ -79,7 +87,7 @@ func (kv *KVServer) Put(args *PutAppendArgs, reply *PutAppendReply) {
 
     _, ok := kv.requestIDs.Load(args.Task_Id)
     if ok {
-        reply.Err = ErrSameCommand
+        reply.Err = SameCommand
         kv.mu.Unlock()
         return
     }
@@ -91,17 +99,24 @@ func (kv *KVServer) Put(args *PutAppendArgs, reply *PutAppendReply) {
         Task_Id:   args.Task_Id,
     }
 
-    index, _, isLeader := kv.rf.Start(op)
+    index, term, isLeader := kv.rf.Start(op)
     if !isLeader {
         reply.Err = ErrWrongLeader
         kv.mu.Unlock()
         return
-    } 
+    }
+
+    if term < args.Term {
+        reply.Err = ErrTerm
+        kv.mu.Unlock()
+        return
+    }
+
+    DPrintf("server %d 的 index %d, term %d", kv.me, index, term)
 
     // 创建一个通道并将其存储在 resultChans 中
     ch := make(chan PutAppendReply, 1)
     kv.resultChans[index] = ch
-    kv.requestIDs.Store(args.Task_Id, kv.kv[args.Key])
 
     kv.mu.Unlock()
 
@@ -127,7 +142,7 @@ func (kv *KVServer) Append(args *PutAppendArgs, reply *PutAppendReply) {
     kv.mu.Lock()
 
     if args.Mode == Mode_Report {
-        kv.requestIDs.Delete(args.Task_Id)
+        kv.OpReport(int(args.Task_Id))
         reply.Err = OK
         kv.mu.Unlock()
         return
@@ -135,7 +150,7 @@ func (kv *KVServer) Append(args *PutAppendArgs, reply *PutAppendReply) {
 
     _, ok := kv.requestIDs.Load(args.Task_Id)
     if ok {
-         reply.Err = ErrSameCommand
+         reply.Err = SameCommand
          kv.mu.Unlock()
          return
     }
@@ -147,17 +162,25 @@ func (kv *KVServer) Append(args *PutAppendArgs, reply *PutAppendReply) {
         Task_Id:   args.Task_Id,
     }
 
-    index, _, isLeader := kv.rf.Start(op)
+    index, term, isLeader := kv.rf.Start(op)
     if !isLeader {
         reply.Err = ErrWrongLeader
         kv.mu.Unlock()
         return
     } 
 
+    if term < args.Term {
+        reply.Err = ErrTerm
+        reply.Term = term
+        kv.mu.Unlock()
+        return
+    }
+    
+    DPrintf("server %d 的 index %d, term %d", kv.me, index, term)
+
     // 创建一个通道并将其存储在 resultChans 中
     ch := make(chan PutAppendReply, 1)
     kv.resultChans[index] = ch
-    kv.requestIDs.Store(args.Task_Id, kv.kv[args.Key])
 
     kv.mu.Unlock()
 
@@ -177,7 +200,15 @@ func (kv *KVServer) Append(args *PutAppendArgs, reply *PutAppendReply) {
     kv.mu.Lock()
     delete(kv.resultChans, index)
     kv.mu.Unlock()
+}
 
+func (kv *KVServer) OpReport(taskId int){
+    op := Op{
+        Operation: "Report",
+        Task_Id:   uint32(taskId),
+    }
+
+    kv.rf.Start(op) 
 }
 
 // the tester calls Kill() when a KVServer instance won't
@@ -227,7 +258,7 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 
 	// You may need initialization code here.
 
-    kv.kv = make(map[string]string)
+    kv.db = make(map[string]string)
     kv.requestIDs = sync.Map{}
     kv.resultChans = make(map[int]chan PutAppendReply)
 
@@ -236,8 +267,10 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
     /*
     go func() {
         for {
-            DPrintf("server %d map %v", kv.me, kv.kv)
-            time.Sleep(1 * time.Second)
+            kv.mu.Lock()
+            DPrintf("server %d map %v", kv.me, kv.db)
+            kv.mu.Unlock()
+            time.Sleep(10 * time.Millisecond)
         }
     }()
     */
@@ -255,15 +288,19 @@ func (kv *KVServer) applier() {
                 
                 if op.Operation == "Put" {
                     DPrintf("server %d Put Key(%s): Value(%s)", kv.me, op.Key, op.Value)
-                    kv.kv[op.Key] = op.Value
+                    kv.db[op.Key] = op.Value
+                    kv.requestIDs.Store(op.Task_Id, kv.db[op.Key])
                 } else if op.Operation == "Append" {
                     DPrintf("server %d Append Key(%s): Value(%s)", kv.me, op.Key, op.Value)
-                    old := kv.kv[op.Key]
+                    old := kv.db[op.Key]
                     if old == "" {
-                        kv.kv[op.Key] = op.Value
+                        kv.db[op.Key] = op.Value
                     } else {
-                        kv.kv[op.Key] = old + op.Value
+                        kv.db[op.Key] = old + op.Value
                     }
+                    kv.requestIDs.Store(op.Task_Id, kv.db[op.Key])
+                } else if op.Operation == "Report" {
+                    kv.requestIDs.Delete(int(op.Task_Id))
                 }
 
                 // 检查是否有等待该命令结果的通道

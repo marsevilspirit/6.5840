@@ -11,8 +11,10 @@ const (
 	OK             = "OK"
 	ErrNoKey       = "ErrNoKey"
 	ErrWrongLeader = "ErrWrongLeader"
-    ErrSameCommand = "ErrSameCommand"
+    SameCommand    = "SameCommand"
     ErrTimeout     = "ErrTimeout"
+    ErrTerm        = "ErrTerm"
+    ErrIndex       = "ErrIndex"
 )
 
 type Err string
@@ -26,18 +28,23 @@ type PutAppendArgs struct {
 	// otherwise RPC will break.
     Task_Id uint32
     Mode    Mode
+    Term    int
+    Index   int
 }
 
 type PutAppendReply struct {
 	Err Err
+    Term int
 }
 
 type GetArgs struct {
 	Key string
 	// You'll have to add definitions here.
+    Term int
 }
 
 type GetReply struct {
 	Err   Err
 	Value string
+    Term  int
 }
