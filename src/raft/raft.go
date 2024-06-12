@@ -162,7 +162,7 @@ func (rf *Raft) persist() {
 
     raftstate := w.Bytes()
     rf.persister.Save(raftstate, rf.snapshot)
-    DPrintf("server %v 持久化数据成功, currentTerm=%v, votedFor=%v, log=%v, lastIncludedIndex=%v, lastIncludedTerm=%v\n", rf.me, rf.currentTerm, rf.votedFor, rf.log, rf.lastIncludedIndex, rf.lastIncludedTerm)
+    //DPrintf("server %v 持久化数据成功, currentTerm=%v, votedFor=%v, log=%v, lastIncludedIndex=%v, lastIncludedTerm=%v\n", rf.me, rf.currentTerm, rf.votedFor, rf.log, rf.lastIncludedIndex, rf.lastIncludedTerm)
 }
 
 // restore previously persisted state.
@@ -193,7 +193,7 @@ func (rf *Raft) readPersist(data []byte) {
     var lastIncludedTerm int
 
     if d.Decode(&currentTerm) != nil || d.Decode(&votedFor) != nil || d.Decode(&log) != nil || d.Decode(&lastIncludedIndex) != nil || d.Decode(&lastIncludedTerm) != nil{
-        //DPrintf("server %v 读取持久化数据失败\n", rf.me)
+        DPrintf("server %v 读取持久化数据失败\n", rf.me)
     } else {
         rf.currentTerm = currentTerm
         rf.votedFor = votedFor
@@ -421,6 +421,7 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 	defer rf.mu.Unlock()
 
 	if rf.state != Leader {
+        DPrintf("server %v 不是leader, 无法开始新的命令\n", rf.me)
 		return -1, -1, false
 	}
 
@@ -435,7 +436,7 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 
     rf.persist()
 
-    defer rf.ResetHeartTimer(1)
+    defer rf.ResetHeartTimer(15)
 
 	return rf.allLogIndex(len(rf.log) - 1), rf.currentTerm, true
 }
@@ -471,89 +472,108 @@ func (rf *Raft) sendAppendEntries(serverTo int, args *AppendEntriesArgs, reply *
 // AppendEntries handler
 func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply) {
 	// Your code here (2A, 2B).
+	// 新leader发送的第一个消息
 	rf.mu.Lock()
-    defer rf.mu.Unlock()
-    
+	// DPrintf("server %v AppendEntries 获取锁mu", rf.me)
+	defer func() {
+		// DPrintf("server %v AppendEntries 释放锁mu", rf.me)
+		rf.mu.Unlock()
+	}()
+
 	if args.Term < rf.currentTerm {
+
 		reply.Term = rf.currentTerm
 		reply.Success = false
-        DPrintf("server %v 收到了旧的leader% v 的心跳函数, args=%+v, 更新的term: %v\n", rf.me, args.LeaderId, args, reply.Term)
+		DPrintf("server %v 收到了旧的leader% v 的心跳函数, args=%+v, 更新的term: %v\n", rf.me, args.LeaderId, args, reply.Term)
 		return
 	}
 
-    rf.ResetVoteTimer()
+	rf.ResetVoteTimer()
 
-	if args.Term > rf.currentTerm { 
-		rf.currentTerm = args.Term 
-		rf.votedFor = -1           
+	if args.Term > rf.currentTerm {
+		rf.currentTerm = args.Term // 更新iterm
+		rf.votedFor = -1           // 易错点: 更新投票记录为未投票
 		rf.state = Follower
+		rf.persist()
 	}
 
-    
 	if len(args.Entries) == 0 {
-		DPrintf("server %v 接收到 leader %v 的心跳: %+v\n", rf.me, args.LeaderId, args)
+		// 心跳函数
+		DPrintf("server %v 接收到 leader %v 的心跳, 自身lastIncludedIndex=%v, PrevLogIndex=%v, len(Entries) = %v\n", rf.me, args.LeaderId, rf.lastIncludedIndex, args.PrevLogIndex, len(args.Entries))
 	} else {
-		DPrintf("server %v 收到 leader %v 的AppendEntries: %+v\n", rf.me, args.LeaderId, args)
+		DPrintf("server %v 收到 leader %v 的AppendEntries, 自身lastIncludedIndex=%v, PrevLogIndex=%v, len(Entries)= %+v \n", rf.me, args.LeaderId, rf.lastIncludedIndex, args.PrevLogIndex, len(args.Entries))
 	}
-    
-    isLogOk := true
 
-	if args.PrevLogIndex >= rf.allLogIndex(len(rf.log)) {
-        reply.XTerm = -1
-        reply.XLen = rf.allLogIndex(len(rf.log))
-        isLogOk = false
-        DPrintf("server %v 在PrevLogIndex: %v 处没有log, all log长度为 %v",rf.me, args.PrevLogIndex, rf.allLogIndex(len(rf.log)))
+	isConflict := false
+
+	if args.PrevLogIndex < rf.lastIncludedIndex {
+		// 过时的RPC, 其 PrevLogIndex 甚至在lastIncludedIndex之前
+		reply.Success = true
+		reply.Term = rf.currentTerm
+		return
+	} else if args.PrevLogIndex >= rf.allLogIndex(len(rf.log)) {
+		// PrevLogIndex位置不存在日志项
+		reply.XTerm = -1
+		reply.XLen = rf.allLogIndex(len(rf.log)) // Log长度, 包括了已经snapShot的部分
+		isConflict = true
+		DPrintf("server %v 的log在PrevLogIndex: %v 位置不存在日志项, Log长度为%v\n", rf.me, args.PrevLogIndex, reply.XLen)
 	} else if rf.log[rf.leaveLogIndex(args.PrevLogIndex)].Term != args.PrevLogTerm {
-        reply.XTerm = rf.log[rf.leaveLogIndex(args.PrevLogIndex)].Term
-        i := args.PrevLogIndex
-        for i > rf.lastIncludedIndex && rf.log[rf.leaveLogIndex(i)].Term == reply.XTerm {
-            i -= 1
-        }
-        reply.XIndex = i + 1 
-        reply.XLen = rf.allLogIndex(len(rf.log))
-        isLogOk = false
-		DPrintf("server %v 的log在PrevLogIndex: %v 位置Term不匹配, args.Term=%v, 实际的term=%v\n", rf.me, args.PrevLogIndex, args.PrevLogTerm, reply.XTerm)    
-    }
-
-    if !isLogOk {
-	    reply.Term = rf.currentTerm
-        reply.Success = false
-        rf.persist() //-------------------------------------------------持久化储存点
-        return
-    }
-
-    for idx, log := range args.Entries {
-        ridx := rf.leaveLogIndex(args.PrevLogIndex) + 1 + idx
-        if ridx < len(rf.log) && rf.log[ridx].Term != log.Term {
-            rf.log = rf.log[:ridx]
-            rf.log = append(rf.log, args.Entries[idx:]...)
-            break
-        } else if ridx == len(rf.log) {
-            rf.log = append(rf.log, args.Entries[idx:]...)
-            break
-        }
-    }
-    
-	if len(args.Entries) != 0 {
-		DPrintf("server %v 成功进行append\n", rf.me)
+		// PrevLogIndex位置的日志项存在, 但term不匹配
+		reply.XTerm = rf.log[rf.leaveLogIndex(args.PrevLogIndex)].Term
+		i := args.PrevLogIndex
+		for i > rf.commitIndex && rf.log[rf.leaveLogIndex(i)].Term == reply.XTerm {
+			i -= 1
+		}
+		reply.XIndex = i + 1
+		reply.XLen = rf.allLogIndex(len(rf.log)) // Log长度, 包括了已经snapShot的部分
+		isConflict = true
+		DPrintf("server %v 的log在PrevLogIndex: %v 位置Term不匹配, args.Term=%v, 实际的term=%v\n", rf.me, args.PrevLogIndex, args.PrevLogTerm, reply.XTerm)
 	}
-    
-    rf.persist() //-------------------------------------------------持久化储存点
+
+	if isConflict {
+		reply.Term = rf.currentTerm
+		reply.Success = false
+		return
+	}
+
+	for idx, log := range args.Entries {
+		ridx := rf.leaveLogIndex(args.PrevLogIndex) + 1 + idx
+		if ridx < len(rf.log) && rf.log[ridx].Term != log.Term {
+			// 某位置发生了冲突, 覆盖这个位置开始的所有内容
+			rf.log = rf.log[:ridx]
+			rf.log = append(rf.log, args.Entries[idx:]...)
+			break
+		} else if ridx == len(rf.log) {
+			// 没有发生冲突但长度更长了, 直接拼接
+			rf.log = append(rf.log, args.Entries[idx:]...)
+			break
+		}
+	}
+	if len(args.Entries) != 0 {
+		DPrintf("server %v 成功进行apeend, lastApplied=%v, len(log)=%v\n", rf.me, rf.lastApplied, len(rf.log))
+	}
+
+	// 4. Append any new entries not already in the log
+	// 补充append的业务
+	rf.persist()
 
 	reply.Success = true
-    reply.Term = rf.currentTerm
+	reply.Term = rf.currentTerm
 
-    if args.LeaderCommit > rf.commitIndex {
-        if args.LeaderCommit < rf.allLogIndex(len(rf.log) - 1) {
-            rf.commitIndex = args.LeaderCommit
-        } else {
-            rf.commitIndex = rf.allLogIndex(len(rf.log) - 1)
-        }
-        rf.condApply.Signal()
-    }
+	if args.LeaderCommit > rf.commitIndex {
+		// 5.If leaderCommit > commitIndex, set commitIndex = min(leaderCommit, index of last new entry)
+		if args.LeaderCommit > rf.allLogIndex(len(rf.log)-1) {
+			rf.commitIndex = rf.allLogIndex(len(rf.log) - 1)
+		} else {
+			rf.commitIndex = args.LeaderCommit
+		}
+		DPrintf("server %v 唤醒检查commit的协程, commitIndex=%v, len(log)=%v\n", rf.me, rf.commitIndex, len(rf.log))
+		rf.condApply.Signal() // 唤醒检查commit的协程
+	}
 }
-
 func (rf *Raft) handleAppendEntries(serverTo int, args *AppendEntriesArgs) {
+	// 目前的设计, 重试自动发生在下一次心跳函数, 所以这里不需要死循环
+
 	reply := &AppendEntriesReply{}
 	ok := rf.sendAppendEntries(serverTo, args, reply)
 	if !ok {
@@ -561,9 +581,15 @@ func (rf *Raft) handleAppendEntries(serverTo int, args *AppendEntriesArgs) {
 	}
 
 	rf.mu.Lock()
-    defer rf.mu.Unlock()
+	// DPrintf("server %v handleAppendEntries 获取锁mu", rf.me)
+	defer func() {
+		// DPrintf("server %v handleAppendEntries 释放锁mu", rf.me)
+		rf.mu.Unlock()
+	}()
 
-	if args.Term != rf.currentTerm {
+	if rf.state != Leader || args.Term != rf.currentTerm {
+		// 函数调用间隙值变了, 已经不是发起这个调用时的term了
+		// 要先判断term是否改变, 否则后续的更改matchIndex等是不安全的
 		return
 	}
 
@@ -571,15 +597,11 @@ func (rf *Raft) handleAppendEntries(serverTo int, args *AppendEntriesArgs) {
 		// server回复成功
 		newMatchIdx := args.PrevLogIndex + len(args.Entries)
 		if newMatchIdx > rf.matchIndex[serverTo] {
-			// 有可能在此期间安装了快照, 导致 rf.matchIndex[serverTo] 本来就更大
+			// 有可能在此期间让follower安装了快照, 导致 rf.matchIndex[serverTo] 本来就更大
 			rf.matchIndex[serverTo] = newMatchIdx
 		}
 
-		newNextIdx := args.PrevLogIndex + len(args.Entries) + 1
-		if newNextIdx > rf.nextIndex[serverTo] {
-			// 有可能在此期间安装了快照, 导致 rf.nextIndex[serverTo] 本来就更大
-			rf.nextIndex[serverTo] = newNextIdx
-		}
+		rf.nextIndex[serverTo] = rf.matchIndex[serverTo] + 1
 
 		// 需要判断是否可以commit
 		N := rf.allLogIndex(len(rf.log) - 1)
@@ -593,10 +615,14 @@ func (rf *Raft) handleAppendEntries(serverTo int, args *AppendEntriesArgs) {
 					continue
 				}
 				if rf.matchIndex[i] >= N && rf.log[rf.leaveLogIndex(N)].Term == rf.currentTerm {
+					// TODO: N有没有可能自减到snapShot之前的索引导致log出现负数索引越界?
+					// 解答: 需要确保调用SnapShot时检查索引是否超过commitIndex
 					count += 1
 				}
 			}
 			if count > len(rf.peers)/2 {
+				// +1 表示包括自身
+				// 如果至少一半的follower回复了成功, 更新commitIndex
 				break
 			}
 			N -= 1
@@ -609,48 +635,64 @@ func (rf *Raft) handleAppendEntries(serverTo int, args *AppendEntriesArgs) {
 	}
 
 	if reply.Term > rf.currentTerm {
-		DPrintf("server %v 旧的leader收到了来自 server %v 的心跳函数中更新的term: %v, 转化为Follower\n", rf.me, serverTo, reply.Term)
+		// 回复了更新的term, 表示自己已经不是leader了
+		DPrintf("server %v 旧的leader收到了来自 server % v 的心跳函数中更新的term: %v, 转化为Follower\n", rf.me, serverTo, reply.Term)
 
 		rf.currentTerm = reply.Term
 		rf.state = Follower
 		rf.votedFor = -1
-        rf.ResetVoteTimer()
-        rf.persist() //-------------------------------------------------持久化储存点
+		rf.ResetVoteTimer()
+		rf.persist()
 		return
 	}
 
 	if reply.Term == rf.currentTerm && rf.state == Leader {
+		// term仍然相同, 且自己还是leader, 表名对应的follower在prevLogIndex位置没有与prevLogTerm匹配的项
+		// 快速回退的处理
 		if reply.XTerm == -1 {
+			// PrevLogIndex这个位置在Follower中不存在
 			DPrintf("leader %v 收到 server %v 的回退请求, 原因是log过短, 回退前的nextIndex[%v]=%v, 回退后的nextIndex[%v]=%v\n", rf.me, serverTo, serverTo, rf.nextIndex[serverTo], serverTo, reply.XLen)
-
-            if rf.lastIncludedIndex >= reply.XLen {
-                go rf.handleInstallSnapshot(serverTo)
-            } else {
-			    rf.nextIndex[serverTo] = reply.XLen
-            }
+			if rf.lastIncludedIndex >= reply.XLen {
+				// 由于snapshot被截断
+				// 下一次心跳添加InstallSnapshot的处理
+				rf.nextIndex[serverTo] = rf.lastIncludedIndex
+			} else {
+				rf.nextIndex[serverTo] = reply.XLen
+			}
 			return
 		}
 
+		// 防止数组越界
+		// if rf.nextIndex[serverTo] < 1 || rf.nextIndex[serverTo] >= len(rf.log) {
+		// 	rf.nextIndex[serverTo] = 1
+		// }
 		i := rf.nextIndex[serverTo] - 1
-        if i < rf.lastIncludedIndex {
-            i = rf.lastIncludedIndex
-        }
+		if i < rf.lastIncludedIndex {
+			i = rf.lastIncludedIndex
+		}
 		for i > rf.lastIncludedIndex && rf.log[rf.leaveLogIndex(i)].Term > reply.XTerm {
 			i -= 1
 		}
 
-        if i == rf.lastIncludedIndex && rf.log[rf.leaveLogIndex(i)].Term > reply.XTerm {
-            go rf.handleInstallSnapshot(serverTo)
-        } else if rf.log[rf.leaveLogIndex(i)].Term == reply.XTerm {
+		if i == rf.lastIncludedIndex && rf.log[rf.leaveLogIndex(i)].Term > reply.XTerm {
+			// 要找的位置已经由于snapshot被截断
+			// 下一次心跳添加InstallSnapshot的处理
+			rf.nextIndex[serverTo] = rf.lastIncludedIndex
+		} else if rf.log[rf.leaveLogIndex(i)].Term == reply.XTerm {
+			// 之前PrevLogIndex发生冲突位置时, Follower的Term自己也有
+
 			DPrintf("leader %v 收到 server %v 的回退请求, 冲突位置的Term为%v, server的这个Term从索引%v开始, 而leader对应的最后一个XTerm索引为%v, 回退前的nextIndex[%v]=%v, 回退后的nextIndex[%v]=%v\n", rf.me, serverTo, reply.XTerm, reply.XIndex, i, serverTo, rf.nextIndex[serverTo], serverTo, i+1)
-			rf.nextIndex[serverTo] = i + 1
+			rf.nextIndex[serverTo] = i + 1 // i + 1是确保没有被截断的
 		} else {
+			// 之前PrevLogIndex发生冲突位置时, Follower的Term自己没有
 			DPrintf("leader %v 收到 server %v 的回退请求, 冲突位置的Term为%v, server的这个Term从索引%v开始, 而leader对应的XTerm不存在, 回退前的nextIndex[%v]=%v, 回退后的nextIndex[%v]=%v\n", rf.me, serverTo, reply.XTerm, reply.XIndex, serverTo, rf.nextIndex[serverTo], serverTo, reply.XIndex)
-            if rf.lastIncludedIndex >= reply.XIndex {
-                go rf.handleInstallSnapshot(serverTo)
-            } else {
-			    rf.nextIndex[serverTo] = reply.XIndex
-            }
+			if reply.XIndex <= rf.lastIncludedIndex {
+				// XIndex位置也被截断了
+				// 添加InstallSnapshot的处理
+				rf.nextIndex[serverTo] = rf.lastIncludedIndex
+			} else {
+				rf.nextIndex[serverTo] = reply.XIndex
+			}
 		}
 		return
 	}
