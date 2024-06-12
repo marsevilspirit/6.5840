@@ -3,19 +3,20 @@ package kvraft
 import (
 	"crypto/rand"
 	"math/big"
-	//"time"
+	"time"
 
 	"6.5840/labrpc"
-	"github.com/google/uuid"
 )
 
+const (
+	RpcRetryInterval = time.Millisecond * 50
+)
 
 type Clerk struct {
-	servers []*labrpc.ClientEnd
-	// You will have to modify this struct.
-    leaderId int
-    curTerm  int
-    curIndex int
+	servers    []*labrpc.ClientEnd
+	seq        uint64
+	identifier int64
+	leaderId   int
 }
 
 func nrand() int64 {
@@ -25,24 +26,17 @@ func nrand() int64 {
 	return x
 }
 
+func (ck *Clerk) GetSeq() (SendSeq uint64) {
+	SendSeq = ck.seq
+	ck.seq += 1
+	return
+}
+
 func MakeClerk(servers []*labrpc.ClientEnd) *Clerk {
 	ck := new(Clerk)
 	ck.servers = servers
-	// You'll have to add code here.
-    ck.leaderId = -1
-    ck.curTerm  = 1
-    ck.curIndex = 1
-
-    /*
-    go func() {
-        for {
-            DPrintf("leaderId: %d", ck.leaderId)
-            time.Sleep(10 * time.Millisecond)
-        }
-    }()
-    */
-
-
+	ck.identifier = nrand()
+	ck.seq = 0
 	return ck
 }
 
@@ -51,52 +45,52 @@ func MakeClerk(servers []*labrpc.ClientEnd) *Clerk {
 // keeps trying forever in the face of all other errors.
 //
 // you can send an RPC with code like this:
-// ok := ck.servers[i].Call("KVServer."+op, &args, &reply)
+// ok := ck.servers[i].Call("KVServer.Get", &args, &reply)
 //
 // the types of args and reply (including whether they are pointers)
 // must match the declared types of the RPC handler function's
 // arguments. and reply must be passed as a pointer.
 func (ck *Clerk) Get(key string) string {
-	// You will have to modify this function.
-    getArgs := GetArgs{
-        Key:    key,
-        Term:   ck.curTerm,
+	args := &GetArgs {
+        Key: key, 
+        Seq: ck.GetSeq(), 
+        Identifier: ck.identifier,
     }
 
-    var serverTo int
-    
-    for i := 0; ; i = (int(nrand()) % len(ck.servers)) {
-        getReply := GetReply{}
+	for {
+		reply := &GetReply{}
+		ok := ck.servers[ck.leaderId].Call("KVServer.Get", args, reply)
+		if !ok || reply.Err == ErrNotLeader || reply.Err == ErrLeaderOutDated {
+			if !ok {
+				reply.Err = ERRRPCFailed
+			}
+			if reply.Err != ErrNotLeader {
+				DPrintf("clerk %v Seq %v 重试Get(%v), Err=%s", args.Identifier, args.Key, args.Key, reply.Err)
+			}
 
-        if ck.leaderId != -1 {
-            serverTo = ck.leaderId
-        } else {
-            serverTo = i
-        }
-        
-        ok := ck.servers[serverTo].Call("KVServer.Get", &getArgs, &getReply)
+			ck.leaderId += 1
+			ck.leaderId %= len(ck.servers)
+			time.Sleep(RpcRetryInterval)
+			continue
+		}
 
-        if ok && getReply.Err == OK {
-            ck.leaderId = serverTo
-            return getReply.Value
-        }
+		switch reply.Err {
+		case ErrChanClose:
+			DPrintf("clerk %v Seq %v 重试Get(%v), Err=%s", args.Identifier, args.Key, args.Key, reply.Err)
+			time.Sleep(time.Microsecond * 5)
+			continue
+		case ErrHandleOpTimeOut:
+			DPrintf("clerk %v Seq %v 重试Get(%v), Err=%s", args.Identifier, args.Key, args.Key, reply.Err)
+			time.Sleep(RpcRetryInterval)
+			continue
+		case ErrKeyNotExist:
+			DPrintf("clerk %v Seq %v 成功: Get(%v)=%v, Err=%s", args.Identifier, args.Key, args.Key, reply.Value, reply.Err)
+			return reply.Value
+		}
+		DPrintf("clerk %v Seq %v 成功: Get(%v)=%v, Err=%s", args.Identifier, args.Key, args.Key, reply.Value, reply.Err)
 
-        if ok && getReply.Err == ErrNoKey {
-            ck.leaderId = serverTo
-            return ""
-        }
-
-        if (ok && getReply.Err == ErrWrongLeader) || !ok {
-            ck.leaderId = -1
-            continue
-        }
-
-        if ok && getReply.Err == ErrTerm {
-            ck.curTerm = getReply.Term
-            getArgs.Term = ck.curTerm
-            continue
-        }
-    }
+		return reply.Value
+	}
 }
 
 // shared by Put and Append.
@@ -109,90 +103,45 @@ func (ck *Clerk) Get(key string) string {
 // arguments. and reply must be passed as a pointer.
 func (ck *Clerk) PutAppend(key string, value string, op string) {
 	// You will have to modify this function.
-    id := uuid.New()
-    put_append_args := PutAppendArgs {
-        Key:            key,
-        Value:          value,
-        Task_Id:        id.ID(),
-        Mode:           Mode_Modify,
-        Term:           ck.curTerm,
-        Index:          ck.curIndex,
-    }
-        
-    var serverTo int
-
-    for i := 0; ; i = (i + 1) % len(ck.servers) {
-        put_append_reply := PutAppendReply{}
-
-        if ck.leaderId != -1 {
-            serverTo = ck.leaderId
-        } else {
-            serverTo = i
-        }
-
-        DPrintf("向服务器发送 op: %-6v key(%v):value(%v) 任务编号：%v", op, key, value, put_append_args.Task_Id)
-
-        ok := ck.servers[serverTo].Call("KVServer."+op, &put_append_args, &put_append_reply)
-
-        if ok {
-            DPrintf("向服务器发送 op: %-6v key(%v):value(%v) 任务编号：%v 成功 --执行结果:%s", op, key, value, put_append_args.Task_Id, put_append_reply.Err)
-        } 
-
-        if ok && (put_append_reply.Err == OK || put_append_reply.Err == SameCommand) {
-            if put_append_reply.Err == OK {
-                ck.leaderId = serverTo
-            }
-            break
-        }
-
-        if ok && put_append_reply.Err == ErrWrongLeader {
-            continue
-        }
-
-        if !ok {
-            ck.leaderId = -1
-            continue
-        }
-
-        if ok && put_append_reply.Err == ErrTerm {
-            ck.curTerm = put_append_reply.Term
-            continue
-        }
+	args := &PutAppendArgs {
+        Key: key, 
+        Value: value, 
+        Op: op, 
+        Seq: ck.GetSeq(), 
+        Identifier: ck.identifier,
     }
 
-	req := PutAppendArgs{
-		Task_Id: id.ID(),
-		Mode:      Mode_Report,
+	for {
+		reply := &PutAppendReply{}
+		ok := ck.servers[ck.leaderId].Call("KVServer.PutAppend", args, reply)
+		if !ok || reply.Err == ErrNotLeader || reply.Err == ErrLeaderOutDated {
+			if !ok {
+				reply.Err = ERRRPCFailed
+			}
+			if reply.Err != ErrNotLeader {
+				DPrintf("clerk %v Seq %v 重试%s(%v, %v), Err=%s", args.Identifier, args.Key, args.Op, args.Key, args.Value, reply.Err)
+			}
+
+			ck.leaderId += 1
+			ck.leaderId %= len(ck.servers)
+			time.Sleep(RpcRetryInterval)
+			continue
+		}
+
+		switch reply.Err {
+		case ErrChanClose:
+			DPrintf("clerk %v Seq %v 重试%s(%v, %v), Err=%s", args.Identifier, args.Key, args.Op, args.Key, args.Value, reply.Err)
+			time.Sleep(RpcRetryInterval)
+			continue
+		case ErrHandleOpTimeOut:
+			DPrintf("clerk %v Seq %v 重试%s(%v, %v), Err=%s", args.Identifier, args.Key, args.Op, args.Key, args.Value, reply.Err)
+			time.Sleep(RpcRetryInterval)
+			continue
+		}
+		DPrintf("clerk %v Seq %v 成功: %s(%v, %v), Err=%s", args.Identifier, args.Key, args.Op, args.Key, args.Value, reply.Err)
+
+		return
 	}
-
-    for i := 0; ; i = (i + 1) % len(ck.servers) {
-	    rsp := PutAppendReply{}
-
-        if ck.leaderId != -1 {
-            serverTo = ck.leaderId
-        } else {
-            serverTo = i
-        }
-
-        DPrintf("消除重复的RPC请求, serverTo: %d", serverTo)
-
-        ok := ck.servers[serverTo].Call("KVServer."+op, &req, &rsp)
-
-        if ok && rsp.Err == OK {
-            ck.leaderId = serverTo
-            break
-        }
-
-        if (ok && rsp.Err == ErrWrongLeader) || !ok {
-            ck.leaderId = -1
-            continue
-        }
-
-        if ok && rsp.Err == ErrTerm {
-            ck.curTerm = rsp.Term
-            continue
-        }
-    }
 }
 
 func (ck *Clerk) Put(key string, value string) {
