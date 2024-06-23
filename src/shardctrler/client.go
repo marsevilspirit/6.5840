@@ -18,7 +18,7 @@ type Clerk struct {
 	// Your data here.
  	seq        uint64
 	identifier int64
-	leaderid   int
+	leaderId   int
 }
 
 func nrand() int64 {
@@ -44,97 +44,97 @@ func MakeClerk(servers []*labrpc.ClientEnd) *Clerk {
 }
 
 func (ck *Clerk) Query(num int) Config {
-	// Your code here.
 	args := &QueryArgs{
-        Num: num,
-        Seq: ck.GetSeq(),
+        Num: num, 
+        Seq: ck.GetSeq(), 
         Identifier: ck.identifier,
     }
 
 	for {
-        DPrintf("Query %v", args)
-        reply := &QueryReply{}
+		// try each known server.
+		reply := &QueryReply{}
 
-        ok := ck.servers[ck.leaderid].Call("ShardCtrler.Query", args, reply)
-        if !ok || reply.WrongLeader {
-            ck.leaderid = (ck.leaderid + 1) % len(ck.servers)
-            time.Sleep(RpcRetryInterval)
-            continue
-        }
+		ok := ck.servers[ck.leaderId].Call("ShardCtrler.Query", args, reply)
 
-        return reply.Config
+		if ok && !reply.WrongLeader && reply.Err == "" {
+			return reply.Config
+		}
+
+		ck.leaderId += 1
+		ck.leaderId %= len(ck.servers)
+		time.Sleep(RpcRetryInterval)
+		continue
 	}
 }
 
 func (ck *Clerk) Join(servers map[int][]string) {
-	// Your code here.
 	args := &JoinArgs{
-        Servers: servers,
-        seq: ck.GetSeq(),
+        Servers: servers, 
+        Seq: ck.GetSeq(), 
         Identifier: ck.identifier,
     }
 
-    DPrintf("Join %v", args)
-
 	for {
+		// try each known server.
         reply := &JoinReply{}
+		ok := ck.servers[ck.leaderId].Call("ShardCtrler.Join", args, reply)
 
-        ok := ck.servers[ck.leaderid].Call("ShardCtrler.Join", args, reply)
-        if !ok || reply.WrongLeader {
-            ck.leaderid = (ck.leaderid + 1) % len(ck.servers)
-            time.Sleep(RpcRetryInterval)
-            continue
-        }
+		if ok && !reply.WrongLeader && reply.Err == "" {
+			return
+		}
 
-        return
+		ck.leaderId += 1
+		ck.leaderId %= len(ck.servers)
+		time.Sleep(RpcRetryInterval)
+		continue
 	}
 }
 
 func (ck *Clerk) Leave(gids []int) {
-	// Your code here.
 	args := &LeaveArgs{
-        GIDs: gids,
-        Seq: ck.GetSeq(),
+        GIDs: gids, 
+        Seq: ck.GetSeq(), 
         Identifier: ck.identifier,
     }
 
-    DPrintf("Leave %v", args)
-
 	for {
+		// try each known server.
         reply := &LeaveReply{}
 
-        ok := ck.servers[ck.leaderid].Call("ShardCtrler.Leave", args, reply)
-        if !ok || reply.WrongLeader {
-            ck.leaderid = (ck.leaderid + 1) % len(ck.servers)
-            time.Sleep(RpcRetryInterval)
-            continue
-        }
-        
-        return
+		ok := ck.servers[ck.leaderId].Call("ShardCtrler.Leave", args, reply)
+
+		if ok && !reply.WrongLeader && reply.Err == "" {
+			return
+		}
+
+		ck.leaderId += 1
+		ck.leaderId %= len(ck.servers)
+		time.Sleep(RpcRetryInterval)
+		continue
 	}
 }
 
 func (ck *Clerk) Move(shard int, gid int) {
-// Your code here.
 	args := &MoveArgs{
-        Shard: shard,
-        GID: gid,
-        Seq: ck.GetSeq(),
+        Shard: shard, 
+        GID: gid, 
+        Seq: ck.GetSeq(), 
         Identifier: ck.identifier,
     }
 
-    DPrintf("Move %v", args)
-
 	for {
+		// try each known server.
         reply := &MoveReply{}
 
-        ok := ck.servers[ck.leaderid].Call("ShardCtrler.Move", args, reply)
-        if !ok || reply.WrongLeader {
-            ck.leaderid = (ck.leaderid + 1) % len(ck.servers)
-            time.Sleep(RpcRetryInterval)
-            continue
-        }
-        
-        return
+		ok := ck.servers[ck.leaderId].Call("ShardCtrler.Move", args, reply)
+
+		if ok && !reply.WrongLeader && reply.Err == "" {
+			return
+		}
+
+		ck.leaderId += 1
+		ck.leaderId %= len(ck.servers)
+		time.Sleep(RpcRetryInterval)
+		continue
 	}
 }
