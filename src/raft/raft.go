@@ -43,6 +43,7 @@ type ApplyMsg struct {
 	CommandValid bool
 	Command      interface{}
 	CommandIndex int
+    CommandTerm  int
 
 	// For 2D:
 	SnapshotValid bool
@@ -101,6 +102,32 @@ type Raft struct {
 
     condApply *sync.Cond
 
+    passiveSnapshotting bool // 该raft server正在进行被动快照的标志（若为true则这期间不进行主动快照）
+	activeSnapshotting  bool // 该raft server正在进行主动快照的标志（若为true则这期间不进行被动快照）
+}
+
+// 由kvserver调用，获取rf.passiveSnapshotting标志，若其为false，则设activeSnapshotting为true
+func (rf *Raft) GetPassiveFlagAndSetActiveFlag() bool {
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
+	if !rf.passiveSnapshotting {
+		rf.activeSnapshotting = true // 若没有进行被动快照则将主动快照进行标志设为true，以便后续的主动快照检查
+	}
+	return rf.passiveSnapshotting
+}
+
+// 由kvserver调用修改rf.passiveSnapshotting
+func (rf *Raft) SetPassiveSnapshottingFlag(flag bool) {
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
+	rf.passiveSnapshotting = flag
+}
+
+// 由kvserver调用修改rf.activeSnapshotting
+func (rf *Raft) SetActiveSnapshottingFlag(flag bool) {
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
+	rf.activeSnapshotting = flag
 }
 
 func GetRandomElectTimeOut(rd *rand.Rand) int {
@@ -223,6 +250,12 @@ func (rf *Raft) leaveLogIndex(allLogIndex int) int {
 func (rf *Raft) allLogIndex(leaveLogIndex int) int {
     return leaveLogIndex + rf.lastIncludedIndex
 }
+
+// 返回raft state size的字节数
+func (rf *Raft) GetRaftStateSize() int {
+	return rf.persister.RaftStateSize()
+}
+
 
 // the service says it has created a snapshot that has
 // all info up to and including index. this means the
@@ -382,6 +415,19 @@ func (rf *Raft) handleInstallSnapshot(serverTo int) {
     }
 
     rf.nextIndex[serverTo] = rf.allLogIndex(1)
+}
+
+// 检查raft是否有当前term的日志
+func (rf *Raft) CheckCurrentTermLog() bool {
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
+
+	latestLog := rf.log[len(rf.log)-1]
+	if rf.currentTerm == latestLog.Term {
+		return true
+	}
+
+	return false
 }
 
 // the tester doesn't halt goroutines created by Raft after each test,
@@ -968,6 +1014,7 @@ func (rf *Raft) CheckCommit() {
 				Command:      rf.log[rf.leaveLogIndex(tmpApplied)].Command,
 				CommandIndex: tmpApplied,
 				SnapshotTerm: rf.log[rf.leaveLogIndex(tmpApplied)].Term,
+                CommandTerm:   rf.log[rf.lastApplied-rf.lastIncludedIndex].Term,
 			}
 
 			msgBuf = append(msgBuf, msg)
